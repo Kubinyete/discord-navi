@@ -1,5 +1,34 @@
 # @SECTION: Funções uteis que manipulam os dados independentemente do bot
 
+ANSI_CODES = {
+	"reset": "0",
+	"bold": "1",
+	"underline": "4",
+	"blink": "5",
+	"reverse": "7",
+	"invisible": "8",
+
+	"black": "30",
+	"red": "31",
+	"green": "32",
+	"yellow": "33",
+	"blue": "34",
+	"magenta": "35",
+	"cyan": "36",
+	"white": "37",
+
+	"bblack": "40",
+	"bred": "41",
+	"bgreen": "42",
+	"byellow": "43",
+	"bblue": "44",
+	"bmagenta": "45",
+	"bcyan": "46",
+	"bwhite": "47"
+}
+
+ANSI_ESCAPE = "\033[{}m"
+
 def listarArgumentos(string):
 	# @NOTE: Estou fazendo a divisão da string para varias chaves de argumentos, seria realmente necessário fazer isso do zero, deve existir já uma biblioteca que faça isso
 	args = []
@@ -70,3 +99,30 @@ def listarArgumentos(string):
 		i = i + 1
 
 	return args, flags
+
+def traduzirCores(str):
+	fstr = ""
+	cor = ""
+	corsequence = None
+	sequence = False
+
+	for c in str:
+		if c == "{":
+			sequence = True
+		elif c == "}":
+			sequence = False
+
+			corsequence = cor.split(".")
+			for i in range(len(corsequence)):
+				corsequence[i] = ANSI_CODES[corsequence[i]]
+			
+			fstr = fstr + ANSI_ESCAPE.format(";".join(corsequence))
+
+			cor = ""
+		else:
+			if sequence:
+				cor = cor + c
+			else:
+				fstr = fstr + c
+
+	return fstr

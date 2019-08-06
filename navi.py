@@ -49,9 +49,6 @@ class NaviClient(discord.Client):
 		
 
 	async def on_message(self, message):
-		if message.author == self.user:
-			return
-
 		for e in self.__eventosMessage:
 			if e.obterAtivado():
 				# @REWRITE
@@ -227,12 +224,13 @@ class NaviBot:
 		if not message:
 			self.__logManager.write("O bot foi iniciado com sucesso")
 		else:
-			if type(message.channel) == discord.DMChannel:
-				self.__logManager.write("<{}> : {}".format(message.author.name, message.content), logtype=LogType.MESSAGE)
-			elif type(message.channel) == discord.TextChannel:
-				self.__logManager.write("[#{}] <{}> : {}".format(message.channel.name, message.author.name, message.content), logtype=LogType.MESSAGE)
+			self.__logManager.write(message, logtype=LogType.MESSAGE)
 
 	async def callbackActivity(self, client, args):
+		if not "loop" in args:
+			asyncio.get_running_loop().create_task(self.__agendarTarefa(NaviRoutine(self.callbackActivity, name=None, every=self.__configManager.obter("global.bot_playing_delay"), unit="s", isPersistent=True), {"loop": True}))
+			return
+
 		activities = self.__configManager.obter("global.bot_playing")
 
 		if activities != None:
@@ -242,9 +240,6 @@ class NaviBot:
 			await self.__naviClient.change_presence(activity=discord.Game(activities[self.__botPlayingIndex]))
 
 			self.__botPlayingIndex = self.__botPlayingIndex + 1
-
-			if not "activity_loop" in args:
-				asyncio.get_running_loop().create_task(self.__agendarTarefa(NaviRoutine(self.callbackActivity, name=None, every=self.__configManager.obter("global.bot_playing_delay"), unit="s"), {"activity_loop": True}))
 
 	async def callbackCommandHandler(self, client, args):
 		message = args["message"]
@@ -260,11 +255,12 @@ class NaviBot:
 				asyncio.get_running_loop().create_task(self.__interpretarComando(args, flags, client, message))
 
 	async def callbackCliListener(self, client, args):
-		if not "cli_is_listening" in args.keys():
-			asyncio.get_running_loop().create_task(self.__agendarTarefa(NaviRoutine(self.callbackCliListener, every=self.__configManager.obter("cli.update_delay"), unit="s"), {"cli_is_listening": True}))
+		if not "loop" in args.keys():
+			asyncio.get_running_loop().create_task(self.__agendarTarefa(NaviRoutine(self.callbackCliListener, every=self.__configManager.obter("cli.update_delay"), unit="s", isPersistent=True), {"loop": True}))
 			return
 
 		clilines = []
+
 		# @BUG:
 		# Apenas funciona no Linux, ler da entrada padrão sem travar a thread principal é bem chato no Python e as funções principais ficam esperando ou newline ou EOF
 		# Por enquanto a CLI só ficará disponível pelo Linux
@@ -279,6 +275,8 @@ class NaviBot:
 			cliargs, cliflags = naviuteis.listarArgumentos(l)
 
 			if len(cliargs) > 0:
+				# @NOTE:
+				# Usando await pois queremos que cada comando na cli seja sequencial
 				await self.__interpretarComandoCli(client, cliargs, cliflags)
 
 	async def callbackRemind(self, client, args):
@@ -452,7 +450,7 @@ class NaviBot:
 			return
 		
 		if "clear" in flags:
-			asyncio.get_running_loop().create_task(self.__agendarTarefa(task, {"message": message}))
+			asyncio.get_running_loop().create_task(self.__agendarTarefa(task))
 			await self.send_feedback(message, NaviFeedback.SUCCESS)
 		else:
 			task.desativar()
@@ -495,7 +493,7 @@ class NaviBot:
 			if "showall" in flags:
 				str = ""
 				for k in self.__tarefasAgendadas.keys():
-					str = str + "`[{}] callback={}, every={}, unit={}, enabled={}, isrunning={}`\n".format(k, self.__tarefasAgendadas[k].obterNomeCallback(), self.__tarefasAgendadas[k].obterEvery(), self.__tarefasAgendadas[k].obterUnit(), self.__tarefasAgendadas[k].obterAtivado(), self.__tarefasAgendadas[k].estaExecutando())
+					str = str + "**{}**\n`callback={}, every={}, unit={}, enabled={}, isrunning={}, ispersistent={}`\n\n".format(k, self.__tarefasAgendadas[k].obterNomeCallback(), self.__tarefasAgendadas[k].obterEvery(), self.__tarefasAgendadas[k].obterUnit(), self.__tarefasAgendadas[k].obterAtivado(), self.__tarefasAgendadas[k].estaExecutando(), self.__tarefasAgendadas[k].persistente())
 
 				await self.send_feedback(message, NaviFeedback.SUCCESS, text=str)
 				return
@@ -512,7 +510,7 @@ class NaviBot:
 
 		if "enable" in flags:
 			if not tarefa.obterAtivado():
-				asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa, {"message": message}))
+				asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa))
 		else:
 			tarefa.desativar()
 
@@ -541,9 +539,12 @@ class NaviBot:
 		tarefa_str = "{}_{}".format(str(message.author.id), self.callbackRemind.__name__)
 		tarefa = self.__obterTarefaAgendada(tarefa_str)
 
+		# @BUG:
+		# Depois de executar o comando, o usuário fica sem poder fazer outro remind até a "thread" acabar, o que pode demorar o tempo que ele especificou x2, pois o "thread" está dormindo
+
 		if tarefa == None:
 			tarefa = NaviRoutine(self.callbackRemind, name=tarefa_str, every=every, unit=unit, args={"remind_text": args[1], "message": message})
-			asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa, {"rotina_origem": tarefa}))
+			asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa))
 			await self.send_feedback(message, NaviFeedback.SUCCESS)
 		else:
 			await self.send_feedback(message, NaviFeedback.ERROR, text="Recentemente já foi solicitado um remind, tente novamente mais tarde")
