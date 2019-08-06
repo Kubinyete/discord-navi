@@ -1,0 +1,27 @@
+{
+	"global": {
+		"bot_token": "BOT_TOKEN",
+		"bot_prefix": ";;",
+		"bot_playing": ["testing!", "typing ;;"],
+		"bot_playing_delay": 30,
+		"log_path": "messages.log"
+	},
+	"commands": {
+		"owners": [],
+		"descriptions": {
+			"command_ping": "Para testar se o bot está vivo ¯\\_(ツ)_/¯",
+			"command_owner_setprefix": "Apenas para usuários especificados, troca o prefixo de ativação do bot independentemente do servidor.",
+			"command_owner_setgame": "Apenas para usuários especificados, atualiza o status de jogo do bot.",
+			"command_owner_send": "Apenas para usuários especificados, envia uma mensagem para o canal especificado.",
+			"command_owner_argtester": "Apenas para usuários especificados, retorna informações sobre os argumentos e suas flags.",
+			"command_owner_task": "Apenas para usuários especificados, permite ativar/desativar/mostrar tarefas presentes no bot.",
+			"command_remind": "Registra um lembrete após o tempo especificado, envia o lembrete através de um canal privado.",
+			"command_embed": "Retorna uma mensagem do tipo \"embed\" de acordo com os parâmetros passados.",
+			"command_avatar": "Retorna a imagem do usuário mencionado.",
+			"command_help": "Permite visualizar todos os comandos e informações do bot."
+		}
+	},
+	"cli": {
+		"update_delay": 1
+	}
+}

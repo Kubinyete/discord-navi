@@ -1,2 +1,4 @@
 # discord-navi
-A experimental bot built using discord.py for learning purposes
+A experimental bot written using discord.py library for learning purposes
+
+Um bot experimental escrito utilizando a biblioteca discord.py por razões de aprendizagem
