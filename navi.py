@@ -6,6 +6,7 @@ import discord
 import enum
 import re
 import naviuteis
+import time
 from navilog import LogManager
 from navilog import LogType
 from naviconfig import ConfigManager
@@ -56,13 +57,13 @@ class NaviClient(discord.Client):
 	async def on_ready(self):
 		for e in self.__eventosReady:
 			if e.obterAtivado():
-				asyncio.get_running_loop().create_task(e.executar(self, {"message": None}))
+				await e.executar(self, {"message": None})
 		
 
 	async def on_message(self, message):
 		for e in self.__eventosMessage:
 			if e.obterAtivado():
-				asyncio.get_running_loop().create_task(e.executar(self, {"message": message}))
+				await e.executar(self, {"message": message})
 
 	def addRotinaEvento(self, evento, rotina):
 		if evento == NaviEvent.READY:
@@ -70,16 +71,23 @@ class NaviClient(discord.Client):
 		elif evento == NaviEvent.MESSAGE:
 			self.__eventosMessage.append(rotina)
 
+	def rodar(self, token):
+		self.run(token)
+
+	async def fechar(self):
+		await self.close()
+
 class NaviRoutine:
-	def __init__(self, callback, name=None, every=None, unit=None, args={}, isPersistent=False):
+	def __init__(self, callback, name=None, every=None, unit=None, staticArgs={}, isPersistent=False, canWait=False):
 		self.__enabled = True
 		self.__isRunning = False
 		self.__isPersistent = isPersistent
-		self.__args = {"rotina_origem": self}
+		self.__canWait = canWait
+		self.__staticArgs = staticArgs
 
 		self.setRotina(callback, name)
 		self.setIntervalo(every, unit)
-		self.atualizarArgs(args)
+		self.atualizarArgs(staticArgs)
 
 
 	def obterRotina(self):
@@ -116,7 +124,7 @@ class NaviRoutine:
 		self.__unit = unit
 
 	def obterArgs(self):
-		return self.__args
+		return self.__staticArgs
 
 	def obterAtivado(self):
 		return self.__enabled
@@ -126,6 +134,12 @@ class NaviRoutine:
 
 	def setExecutando(self, valor):
 		self.__isRunning = valor
+
+	def podeEsperarFinalizar(self):
+		return self.__canWait
+
+	def setEsperarFinalizar(self, valor):
+		self.__canWait = valor
 
 	def persistente(self):
 		return self.__isPersistent
@@ -139,13 +153,15 @@ class NaviRoutine:
 	def desativar(self):
 		self.__enabled = False
 
-	def atualizarArgs(self, updatedArgs):
-		for k in updatedArgs.keys():
-			self.__args[k] = updatedArgs[k]
+	def atualizarArgs(self, newStaticArgs):
+		for k in newStaticArgs.keys():
+			self.__staticArgs[k] = newStaticArgs[k]
 
-	async def executar(self, clientOrigem, updatedArgs={}):
-		self.atualizarArgs(updatedArgs)
-		asyncio.get_running_loop().create_task(self.obterRotina()(clientOrigem, self.obterArgs()))
+	async def executar(self, clientOrigem, runtimeArgs={}):
+		if self.podeEsperarFinalizar():
+			await self.obterRotina()(clientOrigem, self, runtimeArgs)
+		else:
+			asyncio.get_running_loop().create_task(self.obterRotina()(clientOrigem, self, runtimeArgs))
 
 class NaviCommand:
 	def __init__(self, callback, ativador=None, ownerOnly=False):
@@ -234,16 +250,16 @@ class NaviBot:
 		self.__naviClient.addRotinaEvento(NaviEvent.MESSAGE, NaviRoutine(self.callbackLog, isPersistent=True))
 		self.__naviClient.addRotinaEvento(NaviEvent.MESSAGE, NaviRoutine(self.callbackCommandHandler, isPersistent=True))
 
-	async def callbackLog(self, client, args):
-		message = args["message"]
+	async def callbackLog(self, client, rotinaOrigem, runtimeArgs):
+		message = runtimeArgs["message"]
 
 		if not message:
 			self.__logManager.write("O bot foi iniciado com sucesso")
 		else:
 			self.__logManager.write(message, logtype=LogType.MESSAGE)
 
-	async def callbackActivity(self, client, args):
-		if not "loop" in args:
+	async def callbackActivity(self, client, rotinaOrigem, runtimeArgs):
+		if not "loop" in runtimeArgs:
 			asyncio.get_running_loop().create_task(self.__agendarTarefa(NaviRoutine(self.callbackActivity, name=None, every=self.__configManager.obter("global.bot_playing_delay"), unit="s", isPersistent=True), {"loop": True}))
 			return
 
@@ -257,8 +273,8 @@ class NaviBot:
 
 			self.__botPlayingIndex = self.__botPlayingIndex + 1
 
-	async def callbackCommandHandler(self, client, args):
-		message = args["message"]
+	async def callbackCommandHandler(self, client, rotinaOrigem, runtimeArgs):
+		message = runtimeArgs["message"]
 
 		# @NOTE
 		# callbackCommandHandler() só aceita mensagens direcionadas ao bot e que não são diretamente de outro bot (pode causar um loop infinito)
@@ -271,9 +287,9 @@ class NaviBot:
 			if len(args) > 0:
 				asyncio.get_running_loop().create_task(self.__interpretarComando(args, flags, client, message))
 
-	async def callbackCliListener(self, client, args):
-		if not "loop" in args.keys():
-			asyncio.get_running_loop().create_task(self.__agendarTarefa(NaviRoutine(self.callbackCliListener, every=self.__configManager.obter("cli.update_delay"), unit="s", isPersistent=True), {"loop": True}))
+	async def callbackCliListener(self, client, rotinaOrigem, runtimeArgs):
+		if not "loop" in runtimeArgs.keys():
+			asyncio.get_running_loop().create_task(self.__agendarTarefa(NaviRoutine(self.callbackCliListener, every=self.__configManager.obter("cli.update_delay"), unit="ms", isPersistent=True), {"loop": True}))
 			return
 
 		clilines = []
@@ -295,34 +311,35 @@ class NaviBot:
 				# Usando await pois queremos que cada comando na CLI seja sequencial
 				await self.__interpretarComandoCli(client, cliargs, cliflags)
 
-	async def callbackRemind(self, client, args):
-		message = args["message"]
-		rotinaOrigem = args["rotina_origem"]
+	async def callbackRemind(self, client, rotinaOrigem, runtimeArgs):
+		message = runtimeArgs["message"]
 
 		rotinaOrigem.desativar()
 
 		if "remind_text" in rotinaOrigem.obterArgs().keys():
-			await message.author.send("<@{}> Estou lembrando para você de **{}**".format(str(message.author.id), rotinaOrigem.obterArgs()["remind_text"]))
+			await message.author.send("<@{}> Estou lembrando para você de **{}**".format(str(message.author.id), runtimeArgs["remind_text"]))
 		else:
 			await message.author.send("<@{}> Estou te lembrando de algo!")
 
-	async def __agendarTarefa(self, rotina, args={}):
+	async def __agendarTarefa(self, rotina, futureRuntimeArgs={}):
 		segundos = 0
 		unit = rotina.obterUnit()
 		every = rotina.obterEvery()
 
 		if unit == "s":
-			segundos = segundos + every
+			segundos = every
 		elif unit == "m":
-			segundos = segundos + every * 60
+			segundos = every * 60
 		elif unit == "h":
-			segundos = segundos + every * pow(60, 2)
+			segundos = every * pow(60, 2)
+		elif unit == "ms":
+			segundos = every / 1000
 		
-		if segundos < 1:
+		if segundos < .100:
+			# @NOTE
+			# Tempo muito curto
 			raise Exception("Unidade de tempo invalida, every={}, unit={}".format(every, unit))
 		else:
-			rotina.atualizarArgs(args)
-
 			# Ja existe essa tarefa
 			if rotina.obterNome() in self.__tarefasAgendadas.keys():
 				# Se for outra com o mesmo nome, pare
@@ -339,17 +356,32 @@ class NaviBot:
 			# Caso seja o mesmo objeto, apenas vai atualizar a referência
 			self.__tarefasAgendadas[rotina.obterNome()] = rotina
 
+			timespent = 0
+
 			while rotina.obterAtivado():
 				rotina.setExecutando(True)
 
-				await asyncio.sleep(segundos)
+				await asyncio.sleep(segundos - timespent)
 
 				if rotina.obterAtivado():
 					# @TODO
 					# Precisamos utilizar await nesta chamada abaixo, pois caso a tarefa acabe mas não dê tempo dela desativar sozinha seu estado de desativada,
 					# esse loop continua e entra no sleep novamente, portanto devemos fazer cada chamada esperar o termino, e calculamos o tempo que perdemos nesta
 					# execução e retiramos do sleep na proxima iteração (caso houver uma)
-					asyncio.get_running_loop().create_task(rotina.executar(self.__naviClient))
+					# asyncio.get_running_loop().create_task(rotina.executar(self.__naviClient))
+					
+					timespent = time.time()
+
+					await rotina.executar(self.__naviClient, futureRuntimeArgs)
+
+					timespent = time.time() - timespent
+					
+					# self.__logManager.write("Ciclo da tarefa {}, timespent={:.3f}, segundos={}".format(rotina.obterNome(), timespent, segundos), logtype=LogType.DEBUG)
+					
+					if timespent >= segundos:
+						# Perdemos um ou mais ciclos da tarefa, apenas notifique o log
+						self.__logManager.write("Perdido um ciclo de execução da tarefa {}, timespent={:.3f}, segundos={}".format(rotina.obterNome(), timespent, segundos), logtype=LogType.WARNING)
+						timespent = 0
 
 			rotina.setExecutando(False)
 
@@ -402,7 +434,10 @@ class NaviBot:
 	def rodar(self):
 		# @NOTE
 		# Congela a "thread" atual, deverá ser a ultima coisa a ser executada
-		self.__naviClient.run(self.__configManager.obter("global.bot_token"))
+		self.__naviClient.rodar(self.__configManager.obter("global.bot_token"))
+
+	async def fechar(self):
+		await self.__naviClient.fechar()
 
 	# @SECTION
 	# Funções auxiliares dos comandos do bot
@@ -447,6 +482,114 @@ class NaviBot:
 
 	async def command_ping(self, h, args, flags, client, message):
 		await self.send_feedback(message, NaviFeedback.SUCCESS, text="pong!")
+
+	async def command_remind(self, h, args, flags, client, message):
+		if len(args) < 2 or not "time" in flags:
+			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nremind <nome_lembrete> [nome_lembrete2...] [--time=[0-9]+(s|m|h)]")
+			return
+
+		try:
+			every = re.search("^[0-9]+", flags["time"])
+			if every != None:
+				every = int(every[0])
+			unit = re.search("(h|m|s)$", flags["time"])
+			if unit != None:
+				unit = unit[0]
+		except Exception as e:
+			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
+			return
+
+		if every == None or unit == None:
+			await self.send_feedback(message, NaviFeedback.ERROR, text="O argumento '--time' não está em um formato valido")
+			return
+
+		tarefa_str = "{}_{}".format(str(message.author.id), self.callbackRemind.__name__)
+		tarefa = self.__obterTarefaAgendada(tarefa_str)
+
+		if tarefa == None:
+			tarefa = NaviRoutine(self.callbackRemind, name=tarefa_str, every=every, unit=unit, args={"remind_text": " ".join(args[1:]), "message": message}, canWait=True)
+			asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa))
+			await self.send_feedback(message, NaviFeedback.SUCCESS)
+		else:
+			await self.send_feedback(message, NaviFeedback.ERROR, text="Recentemente já foi solicitado um remind, tente novamente mais tarde")
+
+	async def command_embed(self, h, args, flags, client, message):
+		if len(args) < 2 and (not "title" in flags and not "img" in flags):
+			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nembed [description] [description2...] [--title=text] [--img=url]")
+			return
+
+		title = ""
+		description = ""
+		image = ""
+
+
+		if len(args) > 1:
+			description = " ".join(args[1:])
+
+		if "title" in flags:
+			title = flags["title"]
+
+		if "img" in flags:
+			image = flags["img"]
+
+
+		embed = discord.Embed(title=title, description=description, color=discord.Colour.purple())
+		embed.set_image(url=image)
+		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
+
+		try:
+			await message.channel.send(embed=embed)
+			await self.send_feedback(message, NaviFeedback.SUCCESS)
+		except Exception as e:
+			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
+
+	async def command_avatar(self, h, args, flags, client, message):
+		if len(message.mentions) != 1:
+			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\navatar <@Usuario>")
+			return
+
+		user = message.mentions[0]
+
+		embed = discord.Embed(title="Avatar de {}".format(user.name), color=discord.Colour.purple())
+		embed.set_image(url=user.avatar_url_as(size=256))
+		embed.set_footer(text=user.name, icon_url=user.avatar_url_as(size=32))
+
+		try:
+			await message.channel.send(embed=embed)
+			await self.send_feedback(message, NaviFeedback.SUCCESS)
+		except Exception as e:
+			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
+
+	async def command_osu(self, h, args, flags, client, message):
+		if len(args) < 2:
+			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nosu <username> [--mode=std|taiko|ctb|mania]")
+			return
+
+		modeid = 0
+
+		if "mode" in flags:
+			if flags["mode"] == "taiko":
+				modeid = 1
+			elif flags["mode"] == "ctb":
+				modeid = 2
+			elif flags["mode"] == "mania":
+				modeid = 3
+
+		json = await self.__fetchJson(self.__configManager.obter("external.osu.api_domain") + self.__configManager.obter("external.osu.api_getuser").format(token=self.__configManager.obter("external.osu.api_key"), user=" ".join(args[1:]), mode=modeid))
+
+		if json == None:
+			await self.send_feedback(message, NaviFeedback.ERROR)
+			return
+
+
+
+	async def command_help(self, h, args, flags, client, message):
+		helptext = "**Comandos disponíveis**\n\n"
+
+		for h in self.__commandHandlers:
+			helptext = helptext + "`{}`\n{}\n\n".format(h.obterAtivador(), self.__configManager.obter("commands.descriptions.{}".format(h.obterNomeCallback())))
+
+		await self.send_feedback(message, NaviFeedback.SUCCESS, text=helptext)
 
 	async def command_owner_setprefix(self, h, args, flags, client, message):
 		if len(args) < 2 and not "clear" in flags:
@@ -539,91 +682,6 @@ class NaviBot:
 
 		await self.send_feedback(message, NaviFeedback.SUCCESS)
 
-	async def command_remind(self, h, args, flags, client, message):
-		if len(args) < 2 or not "time" in flags:
-			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nremind <nome_lembrete> [nome_lembrete2...] [--time=[0-9]+(s|m|h)]")
-			return
-
-		try:
-			every = re.search("^[0-9]+", flags["time"])
-			if every != None:
-				every = int(every[0])
-			unit = re.search("(h|m|s)$", flags["time"])
-			if unit != None:
-				unit = unit[0]
-		except Exception as e:
-			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
-			return
-
-		if every == None or unit == None:
-			await self.send_feedback(message, NaviFeedback.ERROR, text="O argumento '--time' não está em um formato valido")
-			return
-
-		tarefa_str = "{}_{}".format(str(message.author.id), self.callbackRemind.__name__)
-		tarefa = self.__obterTarefaAgendada(tarefa_str)
-
-		if tarefa == None:
-			tarefa = NaviRoutine(self.callbackRemind, name=tarefa_str, every=every, unit=unit, args={"remind_text": " ".join(args[1:]), "message": message})
-			asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa))
-			await self.send_feedback(message, NaviFeedback.SUCCESS)
-		else:
-			await self.send_feedback(message, NaviFeedback.ERROR, text="Recentemente já foi solicitado um remind, tente novamente mais tarde")
-
-	async def command_embed(self, h, args, flags, client, message):
-		if len(args) < 2 and (not "title" in flags and not "img" in flags):
-			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nembed [description] [description2...] [--title=text] [--img=url]")
-			return
-
-		title = ""
-		description = ""
-		image = ""
-
-
-		if len(args) > 1:
-			description = " ".join(args[1:])
-
-		if "title" in flags:
-			title = flags["title"]
-
-		if "img" in flags:
-			image = flags["img"]
-
-
-		embed = discord.Embed(title=title, description=description, color=discord.Colour.purple())
-		embed.set_image(url=image)
-		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
-
-		try:
-			await message.channel.send(embed=embed)
-			await self.send_feedback(message, NaviFeedback.SUCCESS)
-		except Exception as e:
-			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
-
-	async def command_avatar(self, h, args, flags, client, message):
-		if len(message.mentions) != 1:
-			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\navatar <@Usuario>")
-			return
-
-		user = message.mentions[0]
-
-		embed = discord.Embed(title="Avatar de {}".format(user.name), color=discord.Colour.purple())
-		embed.set_image(url=user.avatar_url_as(size=256))
-		embed.set_footer(text=user.name, icon_url=user.avatar_url_as(size=32))
-
-		try:
-			await message.channel.send(embed=embed)
-			await self.send_feedback(message, NaviFeedback.SUCCESS)
-		except Exception as e:
-			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
-
-	async def command_help(self, h, args, flags, client, message):
-		helptext = "**Comandos disponíveis**\n\n"
-
-		for h in self.__commandHandlers:
-			helptext = helptext + "`{}`\n{}\n\n".format(h.obterAtivador(), self.__configManager.obter("commands.descriptions.{}".format(h.obterNomeCallback())))
-
-		await self.send_feedback(message, NaviFeedback.SUCCESS, text=helptext)
-
 	# @SECTION
 	# Comandos disponibilizados para a CLI oferecida pelo bot
 	
@@ -674,3 +732,9 @@ class NaviBot:
 			await self.__cliSelectedChannel.send(" ".join(args[1:]))
 		except Exception as e:
 			self.__logManager.write(str(e), LogType.ERROR)
+
+	async def cli_quit(self, client, args, flags):
+		self.__logManager.write("Desligando o cliente...", logtype=LogType.WARNING)
+		self.__logManager.desativar()
+		self.__logManager.fechar()
+		await self.fechar()

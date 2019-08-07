@@ -2,7 +2,7 @@
 	"global": {
 		"bot_token": "BOT_TOKEN",
 		"bot_prefix": ";;",
-		"bot_playing": ["testing!", "typing ;;"],
+		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
 		"bot_playing_delay": 30,
 		"log_path": "messages.log"
 	},
@@ -22,6 +22,13 @@
 		}
 	},
 	"cli": {
-		"update_delay": 1
+		"update_delay": 200
+	},
+	"external": {
+		"osu": {
+			"api_key": "OSU_KEY",
+			"api_domain": "osu.ppy.sh",
+			"api_getuser": "/api/get_user?k={token}&u={user}&mode={mode}&type=string&event_days=1"
+		}
 	}
 }

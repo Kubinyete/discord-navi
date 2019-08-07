@@ -29,15 +29,31 @@ class LogType(enum.Enum):
 class LogManager:
 	__expr = "[{}] <{}> {}"
 	__exprTextChannel = "{{yellow}}{guild}{{reset}} #{{red}}{channel}{{reset}} ({channelid}) {{bold}}{user}{{reset}} : "
-	__exprDMChannel = "{{magenta}}{user}{{reset}}> ({userid}): "
+	__exprDMChannel = "{{magenta}}{user}{{reset}} ({userid}) : "
 	
 	def __init__(self, logpath):
 		self.__enabled = True
+		self.__file = None
 		self.atualizarPath(logpath)
 
 	def atualizarPath(self, logpath):
 		self.__path = logpath
 		self.__erro = False
+
+	def obterAtivado(self):
+		return self.__enabled
+
+	def ativar(self):
+		self.__enabled = True
+
+	def desativar(self):
+		self.__enabled = False
+
+	def fechar(self):
+		if self.__file != None:
+			self.__file.flush()
+			self.__file.close()
+			self.__file = None
 
 	def write(self, msg, logtype=LogType.INFO):
 		msgBuffer = ""
@@ -54,15 +70,23 @@ class LogManager:
 
 		print(msgBuffer)
 
-		if self.__enabled:
-			try:
-				with open(self.__path, "a", encoding="utf-8") as f:
-					f.write(re.sub("\033\[[0-9]+(;[0-9]+)*m", "", msgBuffer) + "\n")
-					f.close()
-				
-				self.__erro = False
-			except IOError:
-				if not self.__erro:
-					self.__erro = True
+		if self.__enabled and logtype != LogType.DEBUG:
+			# @NOTE
+			# Operação que congela a rotina atual
+			
+			if self.__file == None:
+				try:
+					self.__file = open(self.__path, "a", encoding="utf-8")
+				except IOError:
+					if not self.__erro:
+						self.__erro = True
 
-					self.write("Não foi possível escrever no arquivo de log especificado (" + self.__path + ")", LogType.ERROR)
+						self.write("Não foi possível escrever no arquivo de log especificado (" + self.__path + ")", LogType.ERROR)
+			else:
+				if self.__file.name != self.__path:
+					self.fechar()
+					self.write(msg, logtype)
+				else:
+					self.__file.write(re.sub("\033\[[0-9]+(;[0-9]+)*m", "", msgBuffer) + "\n")
+					self.__erro = False
+	
