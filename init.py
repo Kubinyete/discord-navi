@@ -1,5 +1,4 @@
-import os
-import sys
+#!/bin/bash
 from navi import NaviBot
 
 if __name__ == "__main__":

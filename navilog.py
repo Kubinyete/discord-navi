@@ -27,7 +27,9 @@ class LogType(enum.Enum):
 		return strings[logtype.value]
 
 class LogManager:
-	__expr = "[{}] <{}> {}\n"
+	__expr = "[{}] <{}> {}"
+	__exprTextChannel = "{{yellow}}{guild}{{reset}} #{{red}}{channel}{{reset}} ({channelid}) {{bold}}{user}{{reset}} : "
+	__exprDMChannel = "{{magenta}}{user}{{reset}}> ({userid}): "
 	
 	def __init__(self, logpath):
 		self.__enabled = True
@@ -40,25 +42,22 @@ class LogManager:
 	def write(self, msg, logtype=LogType.INFO):
 		msgBuffer = ""
 
-		# @CLEAN:
-		# Refazer isto pois esta muito feio ¯\_(ツ)_/¯
-
 		if type(msg) == str:
-			msgBuffer = self.__expr.format(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")), naviuteis.traduzirCores(LogType.toString(logtype)), msg)
+			msgBuffer = naviuteis.traduzirCores(self.__expr.format(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")), LogType.toString(logtype), msg))
 		elif type(msg) == discord.Message:
 			if type(msg.channel) == discord.DMChannel:
-				msgBuffer = self.__expr.format(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")), naviuteis.traduzirCores(LogType.toString(logtype)), "{}: {}".format(naviuteis.traduzirCores(r"{magenta}" + msg.author.name + r"{reset}"), msg.content))
+				msgBuffer = naviuteis.traduzirCores(self.__expr.format(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")), LogType.toString(logtype), self.__exprDMChannel.format(user=msg.author.name, userid=msg.author.id))) + msg.content
 			else:
-				msgBuffer = self.__expr.format(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")), naviuteis.traduzirCores(LogType.toString(logtype)), "{}#{} > {}: {}".format(naviuteis.traduzirCores(r"{yellow}" + msg.channel.guild.name + r"{reset}"), naviuteis.traduzirCores(r"{red}" + msg.channel.name + r"{reset}"), naviuteis.traduzirCores(r"{magenta}" + msg.author.name + r"{reset}"), msg.content))
+				msgBuffer = naviuteis.traduzirCores(self.__expr.format(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")), LogType.toString(logtype), self.__exprTextChannel.format(guild=msg.channel.guild.name, channel=msg.channel.name, channelid=msg.channel.id, user=msg.author.name))) + msg.content
 		else:
 			raise TypeError("Tipo de 'msg' desconhecido")
 
-		print(msgBuffer, end="")
+		print(msgBuffer)
 
 		if self.__enabled:
 			try:
 				with open(self.__path, "a", encoding="utf-8") as f:
-					f.write(re.sub("\033\[[0-9]+(;[0-9]+)*m", "", msgBuffer))
+					f.write(re.sub("\033\[[0-9]+(;[0-9]+)*m", "", msgBuffer) + "\n")
 					f.close()
 				
 				self.__erro = False

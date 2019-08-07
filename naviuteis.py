@@ -1,4 +1,3 @@
-# @SECTION: Funções uteis que manipulam os dados independentemente do bot
 
 ANSI_CODES = {
 	"reset": "0",
@@ -29,15 +28,20 @@ ANSI_CODES = {
 
 ANSI_ESCAPE = "\033[{}m"
 
+# @SECTION
+# Funções uteis que manipulam os dados independentemente do bot
 def listarArgumentos(string):
-	# @NOTE: Estou fazendo a divisão da string para varias chaves de argumentos, seria realmente necessário fazer isso do zero, deve existir já uma biblioteca que faça isso
+	# @NOTE
+	# Estou fazendo a divisão da string para varias chaves de argumentos e flags, provavelmente existir já uma biblioteca que faça isso, porém vou utilizar esta função por enquanto
+	
 	args = []
 	flags = {}
 	buffer = ""
 	stringAtiva = False
 	stringEscape = False
 
-	# @NOTE: Simplificar o código abaixo
+	# @TODO
+	# Simplificar o código abaixo
 	for c in string:
 		if not stringAtiva:
 			if c == "\"":
@@ -70,6 +74,8 @@ def listarArgumentos(string):
 	if len(buffer) > 0:
 		args.append(buffer)
 
+	# @TODO
+	# Essa parte poderia ser feita juntamente com a parte de cima, dispensando a necessidade de iterar pelos dados novamente
 	i = 0
 	while i < len(args):
 		arg = args[i]

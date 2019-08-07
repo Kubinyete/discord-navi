@@ -11,17 +11,29 @@ from navilog import LogType
 from naviconfig import ConfigManager
 
 class NaviEvent(enum.Enum):
-	READY = 0		# on_ready
-	MESSAGE = 1		# on_message
+	# on_ready
+	READY = 0
+
+	# on_message
+	MESSAGE = 1
 
 class NaviFeedback(enum.Enum):
-	INFO = 0			# Mensagem de texto padrão
-	ERROR = 1			# Aconteceu um erro com o comando
-	SUCCESS = 2			# O comando foi bem sucedido
-	WARNING = 3			# O comando foi bem sucedido porém é algo perigoso
-	COMMAND_INFO = 4	# O comando não foi bem sucedido porém foi usado incorretamente
+	# Mensagem de texto padrão
+	INFO = 0
 
-# @NOTE:
+	# Aconteceu um erro com o comando
+	ERROR = 1
+
+	# O comando foi bem sucedido
+	SUCCESS = 2
+
+	# O comando foi bem sucedido porém é algo perigoso
+	WARNING = 3	
+
+	# O comando não foi bem sucedido porém foi usado incorretamente
+	COMMAND_INFO = 4
+
+# @NOTE
 # O cliente NaviClient irá ser o hospedeiro da biblioteca e receberá as chamadas dos eventos principais como on_message e on_ready.
 # Quando isso ocorre, o cliente irá dispirar vários callback associados a este evento, ou seja, precisamos dizer ao NaviClient que queremos que ele
 # notifique tais callback em certos eventos.
@@ -35,7 +47,8 @@ class NaviFeedback(enum.Enum):
 # Uma NaviRoutine pode portanto executar um NaviCommand (feito aqui com o callbackCommandHandler()) se o inicializador for válido.
 
 class NaviClient(discord.Client):
-	# @NOTE: Deixando da forma que esta, com lista de rotinas associadas a um evento maior para poder ter controle durante a execução do Bot da remoção e adição destes modulos
+	# @NOTE
+	# Deixando da forma que esta, com lista de rotinas associadas a um evento maior para poder ter controle durante a execução do bot da remoção e adição destes modulos
 	
 	__eventosReady = []
 	__eventosMessage = []
@@ -43,16 +56,12 @@ class NaviClient(discord.Client):
 	async def on_ready(self):
 		for e in self.__eventosReady:
 			if e.obterAtivado():
-				# @REWRITE
-				#asyncio.get_running_loop().create_task(e.obterRotina()(self))
 				asyncio.get_running_loop().create_task(e.executar(self, {"message": None}))
 		
 
 	async def on_message(self, message):
 		for e in self.__eventosMessage:
 			if e.obterAtivado():
-				# @REWRITE
-				#asyncio.get_running_loop().create_task(e.obterRotina()(self, message))
 				asyncio.get_running_loop().create_task(e.executar(self, {"message": message}))
 
 	def addRotinaEvento(self, evento, rotina):
@@ -62,9 +71,6 @@ class NaviClient(discord.Client):
 			self.__eventosMessage.append(rotina)
 
 class NaviRoutine:
-	__every = None
-	__unit = None
-
 	def __init__(self, callback, name=None, every=None, unit=None, args={}, isPersistent=False):
 		self.__enabled = True
 		self.__isRunning = False
@@ -138,8 +144,6 @@ class NaviRoutine:
 			self.__args[k] = updatedArgs[k]
 
 	async def executar(self, clientOrigem, updatedArgs={}):
-		#print("{} executando, callback={}, args={}, updatedArgs={}".format(self.obterNome(), self.obterNomeCallback(), self.obterArgs(), updatedArgs))
-
 		self.atualizarArgs(updatedArgs)
 		asyncio.get_running_loop().create_task(self.obterRotina()(clientOrigem, self.obterArgs()))
 
@@ -198,23 +202,35 @@ class NaviBot:
 		self.__botPrefix = self.__configManager.obter("global.bot_prefix")
 		self.__botPlayingIndex = 0
 
-		self.__cliSelectedChannel = -1
-		self.__cliSelectedChannelIsUser = False
+		self.__cliSelectedChannel = None
 		
 		self.__naviClient = NaviClient()
 		
+		# @TODO
+		# Para melhorar o desempenho dos handlers, em vez de efetuarmos uma busca sequencial nessas duas listas, podemos utilizar
+		# um dict com acesso direto
 		self.__commandHandlers = []
 		self.__cliHandlers = []
+
 		self.__tarefasAgendadas = {}
 
-		self.__acoplarEventos()				# Pede para o cliente registrar os callbacks de cada evento
-		self.__inicializarComandos()		# Prepara quais comandos estão disponíveis e seus callback para a callback principal de comandos callbackCommandHandler()
-		self.__inicializarComandosCli()		# Prepara quais comandos estão disponíveis e seus callback para o callback da tarefa callbackCliListener()
+		# Pede para o cliente registrar os callbacks de cada evento
+		self.__acoplarEventos()
+
+		# Prepara quais comandos estão disponíveis e seus callback para a callback principal de comandos callbackCommandHandler()
+		self.__inicializarComandos()
+
+		# Prepara quais comandos estão disponíveis e seus callback para o callback da tarefa callbackCliListener()
+		self.__inicializarComandosCli()
 
 	def __acoplarEventos(self):
 		self.__naviClient.addRotinaEvento(NaviEvent.READY, NaviRoutine(self.callbackLog, isPersistent=True))
 		self.__naviClient.addRotinaEvento(NaviEvent.READY, NaviRoutine(self.callbackActivity, isPersistent=True))
+		
+		# @NOTE
+		# Se estiver com problemas em uma terminal windows, desative a rotina da CLI
 		self.__naviClient.addRotinaEvento(NaviEvent.READY, NaviRoutine(self.callbackCliListener, isPersistent=True))
+
 		self.__naviClient.addRotinaEvento(NaviEvent.MESSAGE, NaviRoutine(self.callbackLog, isPersistent=True))
 		self.__naviClient.addRotinaEvento(NaviEvent.MESSAGE, NaviRoutine(self.callbackCommandHandler, isPersistent=True))
 
@@ -244,7 +260,8 @@ class NaviBot:
 	async def callbackCommandHandler(self, client, args):
 		message = args["message"]
 
-		# @NOTE: CommandHandler só aceita mensagens direcionadas ao bot
+		# @NOTE
+		# callbackCommandHandler() só aceita mensagens direcionadas ao bot e que não são diretamente de outro bot (pode causar um loop infinito)
 		if message.author == client.user or message.author.bot:
 			return
 
@@ -261,14 +278,13 @@ class NaviBot:
 
 		clilines = []
 
-		# @BUG:
+		# @BUG
 		# Apenas funciona no Linux, ler da entrada padrão sem travar a thread principal é bem chato no Python e as funções principais ficam esperando ou newline ou EOF
 		# Por enquanto a CLI só ficará disponível pelo Linux
 		# 
 		# Para entender o que está acontecendo:
 		# Enquanto STDIN estiver disponível para leitura (tem algo no buffer), leia a linha presente (normalmente os terminais só enviam a linha quando o usuário aperta ENTER)
 		while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
-			#print("STDIN PERMITE LEITURA")
 			clilines.append(re.sub(r"\n", r"", sys.stdin.readline()))
 
 		for l in clilines:
@@ -276,7 +292,7 @@ class NaviBot:
 
 			if len(cliargs) > 0:
 				# @NOTE:
-				# Usando await pois queremos que cada comando na cli seja sequencial
+				# Usando await pois queremos que cada comando na CLI seja sequencial
 				await self.__interpretarComandoCli(client, cliargs, cliflags)
 
 	async def callbackRemind(self, client, args):
@@ -329,10 +345,15 @@ class NaviBot:
 				await asyncio.sleep(segundos)
 
 				if rotina.obterAtivado():
+					# @TODO
+					# Precisamos utilizar await nesta chamada abaixo, pois caso a tarefa acabe mas não dê tempo dela desativar sozinha seu estado de desativada,
+					# esse loop continua e entra no sleep novamente, portanto devemos fazer cada chamada esperar o termino, e calculamos o tempo que perdemos nesta
+					# execução e retiramos do sleep na proxima iteração (caso houver uma)
 					asyncio.get_running_loop().create_task(rotina.executar(self.__naviClient))
 
 			rotina.setExecutando(False)
 
+			# Se esta rotina não for do sistema, não poderá ser ativada e desativada como quiser, portanto retire da estrutura
 			if not rotina.persistente():
 				self.__tarefasAgendadas.pop(rotina.obterNome())
 
@@ -360,11 +381,8 @@ class NaviBot:
 				await h.obterCallback()(self, client, cliargs, cliflags)
 				return
 
-	# @NOTE:
+	# @NOTE
 	# Para facilitar o uso do Bot e de manutenção de seus comandos, resolvi fazer um inicializador que já verifica quais métodos são comandos executáveis.
-	# 
-	# @TODO:
-	# Os comandos deveriam ter uma forma de mostrar seu uso e descrição automáticamente ou de uma forma mais sofisticada, atualmente é feito manualmente pelo própria função do comando.
 	def __inicializarComandos(self):
 		for k in type(self).__dict__:
 			if k.startswith("command_") and callable(type(self).__dict__[k]):
@@ -382,9 +400,12 @@ class NaviBot:
 		return author.id in self.__configManager.obter("commands.owners")
 
 	def rodar(self):
+		# @NOTE
+		# Congela a "thread" atual, deverá ser a ultima coisa a ser executada
 		self.__naviClient.run(self.__configManager.obter("global.bot_token"))
 
-	# @SECTION: Funções auxiliares dos comandos
+	# @SECTION
+	# Funções auxiliares dos comandos do bot
 	
 	async def send_feedback(self, message, feedback=NaviFeedback.SUCCESS, title=None, text=None, code=False, exception=None):
 		if feedback == NaviFeedback.INFO:
@@ -421,10 +442,11 @@ class NaviBot:
 		if exception != None:
 			self.__logManager.write(str(exception), logtype=LogType.ERROR)
 
-	# @SECTION: Manipuladores de cada comando (são automaticamente detectados ao iniciar com o prefixo 'command_')
+	# @SECTION
+	# Manipuladores de cada comando (são automaticamente detectados ao iniciar com o prefixo 'command_' ou 'command_owner')
 
 	async def command_ping(self, h, args, flags, client, message):
-		await message.channel.send("pong!")
+		await self.send_feedback(message, NaviFeedback.SUCCESS, text="pong!")
 
 	async def command_owner_setprefix(self, h, args, flags, client, message):
 		if len(args) < 2 and not "clear" in flags:
@@ -440,7 +462,7 @@ class NaviBot:
 
 	async def command_owner_setgame(self, h, args, flags, client, message):
 		if len(args) < 2 and not "clear" in flags:
-			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nsetgame [texto] [--clear]")
+			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nsetgame [texto] [texto2...] [--clear]")
 			return
 
 		task = self.__obterTarefaAgendada(self.callbackActivity.__name__)
@@ -456,14 +478,14 @@ class NaviBot:
 			task.desativar()
 
 			try:
-				await client.change_presence(activity=discord.Game(args[1]))
+				await client.change_presence(activity=discord.Game(" ".join(args[1:])))
 				await self.send_feedback(message, NaviFeedback.SUCCESS)
 			except Exception:
 				await self.send_feedback(message, NaviFeedback.ERROR)
 
 	async def command_owner_send(self, h, args, flags, client, message):
 		if len(args) < 3:
-			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nsend <channelid> <mensagem> [--user]")
+			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nsend <channelid> <mensagem> [mensagem2...] [--user]")
 			return
 		
 		try:
@@ -476,7 +498,7 @@ class NaviBot:
 
 			if c != None:
 				try:
-					await c.send(args[2])
+					await c.send(" ".join(args[2:]))
 					await self.send_feedback(message, NaviFeedback.SUCCESS)
 				except Exception as e:
 					await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
@@ -497,6 +519,7 @@ class NaviBot:
 
 				await self.send_feedback(message, NaviFeedback.SUCCESS, text=str)
 				return
+				
 			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\ntask [nome_tarefa] [--showall] [--enable] [--disable]")
 			return
 
@@ -518,7 +541,7 @@ class NaviBot:
 
 	async def command_remind(self, h, args, flags, client, message):
 		if len(args) < 2 or not "time" in flags:
-			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nremind <nome_lembrete> [--time=[0-9]+(s|m|h)]")
+			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nremind <nome_lembrete> [nome_lembrete2...] [--time=[0-9]+(s|m|h)]")
 			return
 
 		try:
@@ -539,11 +562,8 @@ class NaviBot:
 		tarefa_str = "{}_{}".format(str(message.author.id), self.callbackRemind.__name__)
 		tarefa = self.__obterTarefaAgendada(tarefa_str)
 
-		# @BUG:
-		# Depois de executar o comando, o usuário fica sem poder fazer outro remind até a "thread" acabar, o que pode demorar o tempo que ele especificou x2, pois o "thread" está dormindo
-
 		if tarefa == None:
-			tarefa = NaviRoutine(self.callbackRemind, name=tarefa_str, every=every, unit=unit, args={"remind_text": args[1], "message": message})
+			tarefa = NaviRoutine(self.callbackRemind, name=tarefa_str, every=every, unit=unit, args={"remind_text": " ".join(args[1:]), "message": message})
 			asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa))
 			await self.send_feedback(message, NaviFeedback.SUCCESS)
 		else:
@@ -551,7 +571,7 @@ class NaviBot:
 
 	async def command_embed(self, h, args, flags, client, message):
 		if len(args) < 2 and (not "title" in flags and not "img" in flags):
-			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nembed [description] [--title=text] [--img=url]")
+			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nembed [description] [description2...] [--title=text] [--img=url]")
 			return
 
 		title = ""
@@ -560,7 +580,7 @@ class NaviBot:
 
 
 		if len(args) > 1:
-			description = args[1]
+			description = " ".join(args[1:])
 
 		if "title" in flags:
 			title = flags["title"]
@@ -604,8 +624,8 @@ class NaviBot:
 
 		await self.send_feedback(message, NaviFeedback.SUCCESS, text=helptext)
 
-	# @SECTION:
-	# Comandos utilizados pela CLI oferecida pelo bot
+	# @SECTION
+	# Comandos disponibilizados para a CLI oferecida pelo bot
 	
 	async def cli_echo(self, client, args, flags):
 		self.__logManager.write(" ".join(args[1:]), logtype=LogType.DEBUG)
@@ -616,36 +636,37 @@ class NaviBot:
 			return
 
 		if "show" in flags:
-			self.__logManager.write("O canal selecionado é: {}, isuser={}".format(self.__cliSelectedChannel, self.__cliSelectedChannelIsUser), logtype=LogType.INFO)
+			if self.__cliSelectedChannel == None:
+				self.__logManager.write("Nenhum canal/usuário está selecionado", logtype=LogType.INFO)
+			elif type(self.__cliSelectedChannel) == discord.User:
+				self.__logManager.write("O usuário selecionado é: {} ({})".format(self.__cliSelectedChannel.name, self.__cliSelectedChannel.id), logtype=LogType.INFO)
+			elif type(self.__cliSelectedChannel) == discord.TextChannel:
+				self.__logManager.write("O canal selecionado é: {}#{} ({})".format(self.__cliSelectedChannel.guild.name, self.__cliSelectedChannel.name, self.__cliSelectedChannel.id), logtype=LogType.INFO)
+			else:
+				self.__logManager.write("O canal selecionado é: {}".format(str(self.__cliSelectedChannel)), logtype=LogType.INFO)
+
 			return
 
 		try:
-			self.__cliSelectedChannel = int(args[1])
+			cid = int(args[1])
 		except Exception:
-			self.__logManager.write("O id informado não é um número válido", logtype=LogType.INFO)
+			self.__logManager.write("O id informado não é um número", logtype=LogType.ERROR)
 			return
 
-		self.__cliSelectedChannelIsUser = "user" in flags
+		if "user" in flags:
+			self.__cliSelectedChannel = client.get_user(cid)
+		else:
+			self.__cliSelectedChannel = client.get_channel(cid)
+
+		if self.__cliSelectedChannel == None or (type(self.__cliSelectedChannel) != discord.TextChannel and type(self.__cliSelectedChannel) != discord.User):
+			self.__logManager.write("O id informado não é um canal/usuário válido", logtype=LogType.ERROR)
 
 	async def cli_say(self, client, args, flags):
 		if len(args) < 2:
-			self.__logManager.write("Uso:\nsay <mensagem> [mensagem2...] [--user]", logtype=LogType.INFO)
+			self.__logManager.write("Uso:\nsay <mensagem> [mensagem2...]", logtype=LogType.INFO)
 			return
 
 		try:
-			c = None
-
-			if not self.__cliSelectedChannelIsUser:
-				c = client.get_channel(self.__cliSelectedChannel)
-			else:
-				c = client.get_user(self.__cliSelectedChannel)
-
-			if c != None:
-				try:
-					await c.send(" ".join(args[1:]))
-				except Exception as e:
-					self.__logManager.write(str(e), LogType.ERROR)
-			else:
-				self.__logManager.write("O id do canal/usuário não foi encontrado (está esquecendo do --user?)", LogType.ERROR)
+			await c.send(" ".join(args[1:]))
 		except Exception as e:
 			self.__logManager.write(str(e), LogType.ERROR)
