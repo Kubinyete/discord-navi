@@ -666,7 +666,11 @@ class NaviBot:
 			self.__logManager.write("Uso:\nsay <mensagem> [mensagem2...]", logtype=LogType.INFO)
 			return
 
+		if self.__cliSelectedChannel == None:
+			self.__logManager.write("Nenhum canal foi selecionado para enviar a mensagem, selecione utilizando o comando 'select'", logtype=LogType.INFO)
+			return
+
 		try:
-			await c.send(" ".join(args[1:]))
+			await self.__cliSelectedChannel.send(" ".join(args[1:]))
 		except Exception as e:
 			self.__logManager.write(str(e), LogType.ERROR)
