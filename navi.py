@@ -7,6 +7,7 @@ import enum
 import re
 import naviuteis
 import time
+import aiohttp
 from navilog import LogManager
 from navilog import LogType
 from naviconfig import ConfigManager
@@ -221,6 +222,7 @@ class NaviBot:
 		self.__cliSelectedChannel = None
 		
 		self.__naviClient = NaviClient()
+		self.__httpClientSession = aiohttp.ClientSession()
 		
 		# @TODO
 		# Para melhorar o desempenho dos handlers, em vez de efetuarmos uma busca sequencial nessas duas listas, podemos utilizar
@@ -249,6 +251,10 @@ class NaviBot:
 
 		self.__naviClient.addRotinaEvento(NaviEvent.MESSAGE, NaviRoutine(self.callbackLog, isPersistent=True))
 		self.__naviClient.addRotinaEvento(NaviEvent.MESSAGE, NaviRoutine(self.callbackCommandHandler, isPersistent=True))
+
+	async def __fetchJson(self, url, params):
+		async with self.__httpClientSession.get(url, params=params) as resposta:
+			return await resposta.json()
 
 	async def callbackLog(self, client, rotinaOrigem, runtimeArgs):
 		message = runtimeArgs["message"]
@@ -316,10 +322,10 @@ class NaviBot:
 
 		rotinaOrigem.desativar()
 
-		if "remind_text" in rotinaOrigem.obterArgs().keys():
+		if "remind_text" in runtimeArgs:
 			await message.author.send("<@{}> Estou lembrando para você de **{}**".format(str(message.author.id), runtimeArgs["remind_text"]))
 		else:
-			await message.author.send("<@{}> Estou te lembrando de algo!")
+			await message.author.send("<@{}> Estou te lembrando de algo!".format(str(message.author.id)))
 
 	async def __agendarTarefa(self, rotina, futureRuntimeArgs={}):
 		segundos = 0
@@ -343,7 +349,10 @@ class NaviBot:
 			# Ja existe essa tarefa
 			if rotina.obterNome() in self.__tarefasAgendadas.keys():
 				# Se for outra com o mesmo nome, pare
-				if not rotina is self.__obterTarefaAgendada(rotina.obterNome()):
+				# @NOTE
+				# Escrever novamente a logica desta parte, pois queremos que aconteça o seguinte:
+				# Caso já exista a tarefa, verifique se ela está rodanndo, caso não, substitua, se não, jogue uma Exception
+				if rotina != self.__tarefasAgendadas[rotina.obterNome()]:
 					raise Exception("A tarefa a ser inserida nao pode substituir a atual")
 				else:
 					rotina.ativar()
@@ -507,11 +516,11 @@ class NaviBot:
 		tarefa = self.__obterTarefaAgendada(tarefa_str)
 
 		if tarefa == None:
-			tarefa = NaviRoutine(self.callbackRemind, name=tarefa_str, every=every, unit=unit, args={"remind_text": " ".join(args[1:]), "message": message}, canWait=True)
-			asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa))
+			tarefa = NaviRoutine(self.callbackRemind, name=tarefa_str, every=every, unit=unit, canWait=True)
+			asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa, {"remind_text": " ".join(args[1:]), "message": message}))
 			await self.send_feedback(message, NaviFeedback.SUCCESS)
 		else:
-			await self.send_feedback(message, NaviFeedback.ERROR, text="Recentemente já foi solicitado um remind, tente novamente mais tarde")
+			await self.send_feedback(message, NaviFeedback.ERROR, text="Recentemente já foi solicitado um 'remind', tente novamente mais tarde")
 
 	async def command_embed(self, h, args, flags, client, message):
 		if len(args) < 2 and (not "title" in flags and not "img" in flags):
@@ -537,11 +546,7 @@ class NaviBot:
 		embed.set_image(url=image)
 		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
 
-		try:
-			await message.channel.send(embed=embed)
-			await self.send_feedback(message, NaviFeedback.SUCCESS)
-		except Exception as e:
-			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
+		await self.send_feedback(message, NaviFeedback.SUCCESS)
 
 	async def command_avatar(self, h, args, flags, client, message):
 		if len(message.mentions) != 1:
@@ -552,13 +557,10 @@ class NaviBot:
 
 		embed = discord.Embed(title="Avatar de {}".format(user.name), color=discord.Colour.purple())
 		embed.set_image(url=user.avatar_url_as(size=256))
-		embed.set_footer(text=user.name, icon_url=user.avatar_url_as(size=32))
+		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
 
-		try:
-			await message.channel.send(embed=embed)
-			await self.send_feedback(message, NaviFeedback.SUCCESS)
-		except Exception as e:
-			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
+		await message.channel.send(embed=embed)
+		await self.send_feedback(message, NaviFeedback.SUCCESS)
 
 	async def command_osu(self, h, args, flags, client, message):
 		if len(args) < 2:
@@ -575,12 +577,35 @@ class NaviBot:
 			elif flags["mode"] == "mania":
 				modeid = 3
 
-		json = await self.__fetchJson(self.__configManager.obter("external.osu.api_domain") + self.__configManager.obter("external.osu.api_getuser").format(token=self.__configManager.obter("external.osu.api_key"), user=" ".join(args[1:]), mode=modeid))
-
-		if json == None:
-			await self.send_feedback(message, NaviFeedback.ERROR)
+		try:
+			json = await self.__fetchJson("https://" + self.__configManager.obter("external.osu.api_domain") + self.__configManager.obter("external.osu.api_getuser"), {"k": self.__configManager.obter("external.osu.api_key"), "u": " ".join(args[1:]), "mode": modeid, "type": "string"})
+			
+			if len(json) > 0:
+				json = json[0]
+			else:
+				await self.send_feedback(message, NaviFeedback.ERROR, text="Não foi encontrado nenhum usuário com esse nome")
+				return
+		except Exception as e:
+			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
 			return
 
+		description = """
+**#{rank}** (:flag_{country}: **#{countryrank}**)
+
+**Join date:**	{joindate}
+**Playcount:**	{playcount}
+**PP:**	{ppraw}
+**Accuracy:**	{accuracy}
+
+*View on* [osu.ppy.sh]({link})
+""".format(rank=json["pp_rank"], country=json["country"].lower(), countryrank=json["pp_country_rank"], joindate=json["join_date"], playcount=json["playcount"], ppraw=json["pp_raw"], accuracy=json["accuracy"], link="https://" + self.__configManager.obter("external.osu.api_domain") + "/u/" + json["user_id"])
+
+		embed = discord.Embed(title="Perfil de " + json["username"], description=description,color=discord.Colour.magenta())
+		embed.set_thumbnail(url="https://" + self.__configManager.obter("external.osu.api_assets") + "/" + json["user_id"])
+		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
+
+		await message.channel.send(embed=embed)
+		await self.send_feedback(message, NaviFeedback.SUCCESS)
 
 
 	async def command_help(self, h, args, flags, client, message):
@@ -615,7 +640,7 @@ class NaviBot:
 			return
 		
 		if "clear" in flags:
-			asyncio.get_running_loop().create_task(self.__agendarTarefa(task))
+			asyncio.get_running_loop().create_task(self.__agendarTarefa(task, {"loop": True}))
 			await self.send_feedback(message, NaviFeedback.SUCCESS)
 		else:
 			task.desativar()
@@ -676,7 +701,7 @@ class NaviBot:
 
 		if "enable" in flags:
 			if not tarefa.obterAtivado():
-				asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa))
+				asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa, {"loop": True}))
 		else:
 			tarefa.desativar()
 
@@ -718,6 +743,8 @@ class NaviBot:
 
 		if self.__cliSelectedChannel == None or (type(self.__cliSelectedChannel) != discord.TextChannel and type(self.__cliSelectedChannel) != discord.User):
 			self.__logManager.write("O id informado não é um canal/usuário válido", logtype=LogType.ERROR)
+		else:
+			await self.cli_select(client, {}, {"show": True})
 
 	async def cli_say(self, client, args, flags):
 		if len(args) < 2:
@@ -737,4 +764,5 @@ class NaviBot:
 		self.__logManager.write("Desligando o cliente...", logtype=LogType.WARNING)
 		self.__logManager.desativar()
 		self.__logManager.fechar()
+		await self.__httpClientSession.close()
 		await self.fechar()
