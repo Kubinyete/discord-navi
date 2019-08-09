@@ -28,7 +28,8 @@
 		"osu": {
 			"api_key": "OSU_KEY",
 			"api_domain": "osu.ppy.sh",
-			"api_getuser": "/api/get_user?k={token}&u={user}&mode={mode}&type=string&event_days=1"
+			"api_assets": "a.ppy.sh",
+			"api_getuser": "/api/get_user"
 		}
 	}
 }

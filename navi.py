@@ -7,6 +7,7 @@ import enum
 import re
 import naviuteis
 import time
+import aiohttp
 from navilog import LogManager
 from navilog import LogType
 from naviconfig import ConfigManager
@@ -221,6 +222,7 @@ class NaviBot:
 		self.__cliSelectedChannel = None
 		
 		self.__naviClient = NaviClient()
+		self.__httpClientSession = aiohttp.ClientSession()
 		
 		# @TODO
 		# Para melhorar o desempenho dos handlers, em vez de efetuarmos uma busca sequencial nessas duas listas, podemos utilizar
@@ -249,6 +251,10 @@ class NaviBot:
 
 		self.__naviClient.addRotinaEvento(NaviEvent.MESSAGE, NaviRoutine(self.callbackLog, isPersistent=True))
 		self.__naviClient.addRotinaEvento(NaviEvent.MESSAGE, NaviRoutine(self.callbackCommandHandler, isPersistent=True))
+
+	async def __fetchJson(self, url, params):
+		async with self.__httpClientSession.get(url, params=params) as resposta:
+			return await resposta.json()
 
 	async def callbackLog(self, client, rotinaOrigem, runtimeArgs):
 		message = runtimeArgs["message"]
@@ -343,7 +349,10 @@ class NaviBot:
 			# Ja existe essa tarefa
 			if rotina.obterNome() in self.__tarefasAgendadas.keys():
 				# Se for outra com o mesmo nome, pare
-				if not rotina is self.__obterTarefaAgendada(rotina.obterNome()):
+				# @NOTE
+				# Escrever novamente a logica desta parte, pois queremos que aconteça o seguinte:
+				# Caso já exista a tarefa, verifique se ela está rodanndo, caso não, substitua, se não, jogue uma Exception
+				if rotina != self.__tarefasAgendadas[rotina.obterNome()]:
 					raise Exception("A tarefa a ser inserida nao pode substituir a atual")
 				else:
 					rotina.ativar()
@@ -575,12 +584,24 @@ class NaviBot:
 			elif flags["mode"] == "mania":
 				modeid = 3
 
-		json = await self.__fetchJson(self.__configManager.obter("external.osu.api_domain") + self.__configManager.obter("external.osu.api_getuser").format(token=self.__configManager.obter("external.osu.api_key"), user=" ".join(args[1:]), mode=modeid))
-
-		if json == None:
-			await self.send_feedback(message, NaviFeedback.ERROR)
+		try:
+			json = await self.__fetchJson("https://" + self.__configManager.obter("external.osu.api_domain") + self.__configManager.obter("external.osu.api_getuser"), {"k": self.__configManager.obter("external.osu.api_key"), "u": " ".join(args[1:]), "mode": modeid, "type": "string"})
+			json = json[0]
+		except Exception as e:
+			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
 			return
 
+		embed = discord.Embed(title=json["username"], color=discord.Colour.magenta())
+		embed.set_thumbnail(url="https://" + self.__configManager.obter("external.osu.api_assets") + "/" + json["user_id"])
+		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
+
+		try:
+			await message.channel.send(embed=embed)
+		except Exception as e:
+			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
+			return
+
+		await self.send_feedback(message, NaviFeedback.SUCCESS)
 
 
 	async def command_help(self, h, args, flags, client, message):
@@ -615,7 +636,7 @@ class NaviBot:
 			return
 		
 		if "clear" in flags:
-			asyncio.get_running_loop().create_task(self.__agendarTarefa(task))
+			asyncio.get_running_loop().create_task(self.__agendarTarefa(task, {"loop": True}))
 			await self.send_feedback(message, NaviFeedback.SUCCESS)
 		else:
 			task.desativar()
@@ -676,7 +697,7 @@ class NaviBot:
 
 		if "enable" in flags:
 			if not tarefa.obterAtivado():
-				asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa))
+				asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa, {"loop": True}))
 		else:
 			tarefa.desativar()
 
@@ -737,4 +758,5 @@ class NaviBot:
 		self.__logManager.write("Desligando o cliente...", logtype=LogType.WARNING)
 		self.__logManager.desativar()
 		self.__logManager.fechar()
+		await self.__httpClientSession.close()
 		await self.fechar()
