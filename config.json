@@ -18,7 +18,8 @@
 			"command_remind": "Registra um lembrete após o tempo especificado, envia o lembrete através de um canal privado.",
 			"command_embed": "Retorna uma mensagem do tipo \"embed\" de acordo com os parâmetros passados.",
 			"command_avatar": "Retorna a imagem do usuário mencionado.",
-			"command_help": "Permite visualizar todos os comandos e informações do bot."
+			"command_help": "Permite visualizar todos os comandos e informações do bot.",
+			"command_osu": "Retorna o perfil do osu! de determinado usuário."
 		}
 	},
 	"cli": {

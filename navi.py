@@ -322,10 +322,10 @@ class NaviBot:
 
 		rotinaOrigem.desativar()
 
-		if "remind_text" in rotinaOrigem.obterArgs().keys():
+		if "remind_text" in runtimeArgs:
 			await message.author.send("<@{}> Estou lembrando para você de **{}**".format(str(message.author.id), runtimeArgs["remind_text"]))
 		else:
-			await message.author.send("<@{}> Estou te lembrando de algo!")
+			await message.author.send("<@{}> Estou te lembrando de algo!".format(str(message.author.id)))
 
 	async def __agendarTarefa(self, rotina, futureRuntimeArgs={}):
 		segundos = 0
@@ -516,11 +516,11 @@ class NaviBot:
 		tarefa = self.__obterTarefaAgendada(tarefa_str)
 
 		if tarefa == None:
-			tarefa = NaviRoutine(self.callbackRemind, name=tarefa_str, every=every, unit=unit, args={"remind_text": " ".join(args[1:]), "message": message}, canWait=True)
-			asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa))
+			tarefa = NaviRoutine(self.callbackRemind, name=tarefa_str, every=every, unit=unit, canWait=True)
+			asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa, {"remind_text": " ".join(args[1:]), "message": message}))
 			await self.send_feedback(message, NaviFeedback.SUCCESS)
 		else:
-			await self.send_feedback(message, NaviFeedback.ERROR, text="Recentemente já foi solicitado um remind, tente novamente mais tarde")
+			await self.send_feedback(message, NaviFeedback.ERROR, text="Recentemente já foi solicitado um 'remind', tente novamente mais tarde")
 
 	async def command_embed(self, h, args, flags, client, message):
 		if len(args) < 2 and (not "title" in flags and not "img" in flags):
@@ -546,11 +546,7 @@ class NaviBot:
 		embed.set_image(url=image)
 		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
 
-		try:
-			await message.channel.send(embed=embed)
-			await self.send_feedback(message, NaviFeedback.SUCCESS)
-		except Exception as e:
-			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
+		await self.send_feedback(message, NaviFeedback.SUCCESS)
 
 	async def command_avatar(self, h, args, flags, client, message):
 		if len(message.mentions) != 1:
@@ -561,13 +557,10 @@ class NaviBot:
 
 		embed = discord.Embed(title="Avatar de {}".format(user.name), color=discord.Colour.purple())
 		embed.set_image(url=user.avatar_url_as(size=256))
-		embed.set_footer(text=user.name, icon_url=user.avatar_url_as(size=32))
+		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
 
-		try:
-			await message.channel.send(embed=embed)
-			await self.send_feedback(message, NaviFeedback.SUCCESS)
-		except Exception as e:
-			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
+		await message.channel.send(embed=embed)
+		await self.send_feedback(message, NaviFeedback.SUCCESS)
 
 	async def command_osu(self, h, args, flags, client, message):
 		if len(args) < 2:
@@ -586,6 +579,7 @@ class NaviBot:
 
 		try:
 			json = await self.__fetchJson("https://" + self.__configManager.obter("external.osu.api_domain") + self.__configManager.obter("external.osu.api_getuser"), {"k": self.__configManager.obter("external.osu.api_key"), "u": " ".join(args[1:]), "mode": modeid, "type": "string"})
+<<<<<<< HEAD
 			json = json[0]
 		except Exception as e:
 			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
@@ -597,10 +591,37 @@ class NaviBot:
 
 		try:
 			await message.channel.send(embed=embed)
+=======
+			
+			if len(json) > 0:
+				json = json[0]
+			else:
+				await self.send_feedback(message, NaviFeedback.ERROR, text="Não foi encontrado nenhum usuário com esse nome")
+				return
+>>>>>>> 0444bf289a12a98b19c4930f4cff82d69ef4927c
 		except Exception as e:
 			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
 			return
 
+<<<<<<< HEAD
+=======
+		description = """
+**#{rank}** (:flag_{country}: **#{countryrank}**)
+
+**Join date:**	{joindate}
+**Playcount:**	{playcount}
+**PP:**	{ppraw}
+**Accuracy:**	{accuracy}
+
+*View on* [osu.ppy.sh]({link})
+""".format(rank=json["pp_rank"], country=json["country"].lower(), countryrank=json["pp_country_rank"], joindate=json["join_date"], playcount=json["playcount"], ppraw=json["pp_raw"], accuracy=json["accuracy"], link="https://" + self.__configManager.obter("external.osu.api_domain") + "/u/" + json["user_id"])
+
+		embed = discord.Embed(title="Perfil de " + json["username"], description=description,color=discord.Colour.magenta())
+		embed.set_thumbnail(url="https://" + self.__configManager.obter("external.osu.api_assets") + "/" + json["user_id"])
+		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
+
+		await message.channel.send(embed=embed)
+>>>>>>> 0444bf289a12a98b19c4930f4cff82d69ef4927c
 		await self.send_feedback(message, NaviFeedback.SUCCESS)
 
 
@@ -739,6 +760,8 @@ class NaviBot:
 
 		if self.__cliSelectedChannel == None or (type(self.__cliSelectedChannel) != discord.TextChannel and type(self.__cliSelectedChannel) != discord.User):
 			self.__logManager.write("O id informado não é um canal/usuário válido", logtype=LogType.ERROR)
+		else:
+			await self.cli_select(client, {}, {"show": True})
 
 	async def cli_say(self, client, args, flags):
 		if len(args) < 2:
@@ -759,4 +782,8 @@ class NaviBot:
 		self.__logManager.desativar()
 		self.__logManager.fechar()
 		await self.__httpClientSession.close()
+<<<<<<< HEAD
 		await self.fechar()
+=======
+		await self.fechar()
+>>>>>>> 0444bf289a12a98b19c4930f4cff82d69ef4927c
