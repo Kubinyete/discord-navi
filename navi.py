@@ -579,32 +579,16 @@ class NaviBot:
 
 		try:
 			json = await self.__fetchJson("https://" + self.__configManager.obter("external.osu.api_domain") + self.__configManager.obter("external.osu.api_getuser"), {"k": self.__configManager.obter("external.osu.api_key"), "u": " ".join(args[1:]), "mode": modeid, "type": "string"})
-<<<<<<< HEAD
-			json = json[0]
-		except Exception as e:
-			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
-			return
 
-		embed = discord.Embed(title=json["username"], color=discord.Colour.magenta())
-		embed.set_thumbnail(url="https://" + self.__configManager.obter("external.osu.api_assets") + "/" + json["user_id"])
-		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
-
-		try:
-			await message.channel.send(embed=embed)
-=======
-			
 			if len(json) > 0:
 				json = json[0]
 			else:
 				await self.send_feedback(message, NaviFeedback.ERROR, text="Não foi encontrado nenhum usuário com esse nome")
 				return
->>>>>>> 0444bf289a12a98b19c4930f4cff82d69ef4927c
 		except Exception as e:
 			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
 			return
 
-<<<<<<< HEAD
-=======
 		description = """
 **#{rank}** (:flag_{country}: **#{countryrank}**)
 
@@ -621,9 +605,7 @@ class NaviBot:
 		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
 
 		await message.channel.send(embed=embed)
->>>>>>> 0444bf289a12a98b19c4930f4cff82d69ef4927c
 		await self.send_feedback(message, NaviFeedback.SUCCESS)
-
 
 	async def command_help(self, h, args, flags, client, message):
 		helptext = "**Comandos disponíveis**\n\n"
@@ -782,8 +764,4 @@ class NaviBot:
 		self.__logManager.desativar()
 		self.__logManager.fechar()
 		await self.__httpClientSession.close()
-<<<<<<< HEAD
 		await self.fechar()
-=======
-		await self.fechar()
->>>>>>> 0444bf289a12a98b19c4930f4cff82d69ef4927c
