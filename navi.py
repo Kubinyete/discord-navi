@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+import platform
 import select
 import discord
 import enum
@@ -212,42 +213,35 @@ class NaviCommand:
 
 class NaviBot:
 	def __init__(self, configpath):
+		# Componentes
 		self.__logManager = LogManager("debug.log")
 		self.__configManager = ConfigManager(configpath, self.__logManager)
 		self.__logManager.atualizarPath(self.__configManager.obter("global.log_path"))
+		self.__naviClient = NaviClient()
+		# fetchJson com aiohttp
+		self.__httpClientSession = aiohttp.ClientSession()
 
+		# Configurações de inicialização
 		self.__botPrefix = self.__configManager.obter("global.bot_prefix")
 		self.__botPlayingIndex = 0
-
 		self.__cliSelectedChannel = None
-		
-		self.__naviClient = NaviClient()
-		self.__httpClientSession = aiohttp.ClientSession()
-		
-		# @TODO
-		# Para melhorar o desempenho dos handlers, em vez de efetuarmos uma busca sequencial nessas duas listas, podemos utilizar
-		# um dict com acesso direto
-		self.__commandHandlers = []
-		self.__cliHandlers = []
-
+		self.__commandHandlers = {}
+		self.__cliHandlers = {}
 		self.__tarefasAgendadas = {}
 
 		# Pede para o cliente registrar os callbacks de cada evento
 		self.__acoplarEventos()
-
-		# Prepara quais comandos estão disponíveis e seus callback para a callback principal de comandos callbackCommandHandler()
+		# Prepara quais comandos estão disponíveis e seus callback para a callback principal de comandos callbackCommandHandler() e callbackCliListener()
 		self.__inicializarComandos()
-
-		# Prepara quais comandos estão disponíveis e seus callback para o callback da tarefa callbackCliListener()
-		self.__inicializarComandosCli()
 
 	def __acoplarEventos(self):
 		self.__naviClient.addRotinaEvento(NaviEvent.READY, NaviRoutine(self.callbackLog, isPersistent=True))
 		self.__naviClient.addRotinaEvento(NaviEvent.READY, NaviRoutine(self.callbackActivity, isPersistent=True))
 		
 		# @NOTE
-		# Se estiver com problemas em uma terminal windows, desative a rotina da CLI
-		self.__naviClient.addRotinaEvento(NaviEvent.READY, NaviRoutine(self.callbackCliListener, isPersistent=True))
+		# Só ativa o listener de CLI caso esteja no Linux
+		if platform.system() ==  "Linux":
+			self.__naviClient.addRotinaEvento(NaviEvent.READY, NaviRoutine(self.callbackCliListener, isPersistent=True))
 
 		self.__naviClient.addRotinaEvento(NaviEvent.MESSAGE, NaviRoutine(self.callbackLog, isPersistent=True))
 		self.__naviClient.addRotinaEvento(NaviEvent.MESSAGE, NaviRoutine(self.callbackCommandHandler, isPersistent=True))
@@ -294,6 +288,10 @@ class NaviBot:
 				asyncio.get_running_loop().create_task(self.__interpretarComando(args, flags, client, message))
 
 	async def callbackCliListener(self, client, rotinaOrigem, runtimeArgs):
+		# Previne que qualquer outro comando tente agendar essa tarefa novamente em uma plataforma que não seja Linux
+		if platform.system() !=  "Linux":
+			return
+
 		if not "loop" in runtimeArgs.keys():
 			asyncio.get_running_loop().create_task(self.__agendarTarefa(NaviRoutine(self.callbackCliListener, every=self.__configManager.obter("cli.update_delay"), unit="ms", isPersistent=True), {"loop": True}))
 			return
@@ -406,36 +404,52 @@ class NaviBot:
 
 		return task
 		
-	async def __interpretarComando(self, args, flags, client, message):
-		for h in self.__commandHandlers:
-			if args[0] == h.obterAtivador():
-				if h.obterOwnerOnly() and not self.__isOwner(message.author):
-					asyncio.get_running_loop().create_task(self.send_feedback(message, NaviFeedback.ERROR))
-				else:
-					asyncio.get_running_loop().create_task(h.obterCallback()(self, h, args, flags, client, message))
+	def __obterComando(self, nome):
+		try:
+			comando = self.__commandHandlers[nome]
+		except KeyError:
+			return None
 
-				return
+		return comando
+
+	def __obterComandoCli(self, nome):
+		try:
+			comando = self.__cliHandlers[nome]
+		except KeyError:
+			return None
+
+		return comando
+
+	async def __interpretarComando(self, args, flags, client, message):
+		h = self.__obterComando(args[0])
+
+		if h == None:
+			return
+
+		if h.obterOwnerOnly() and not self.__isOwner(message.author):
+			asyncio.get_running_loop().create_task(self.send_feedback(message, NaviFeedback.ERROR))
+		else:
+			asyncio.get_running_loop().create_task(h.obterCallback()(self, h, args, flags, client, message))
 
 	async def __interpretarComandoCli(self, client, cliargs, cliflags):
-		for h in self.__cliHandlers:
-			if cliargs[0] == h.obterAtivador():
-				await h.obterCallback()(self, client, cliargs, cliflags)
-				return
+		h = self.__obterComandoCli(cliargs[0])
 
+		if h == None:
+			return
+
+		await h.obterCallback()(self, client, cliargs, cliflags)
+		
 	# @NOTE
 	# Para facilitar o uso do Bot e de manutenção de seus comandos, resolvi fazer um inicializador que já verifica quais métodos são comandos executáveis.
 	def __inicializarComandos(self):
 		for k in type(self).__dict__:
-			if k.startswith("command_") and callable(type(self).__dict__[k]):
-				if not k.startswith("command_owner_"):
-					self.__commandHandlers.append(NaviCommand(type(self).__dict__[k], k[len("command_"):]))
-				else:
-					self.__commandHandlers.append(NaviCommand(type(self).__dict__[k], k[len("command_owner_"):], ownerOnly=True))
-
-	def __inicializarComandosCli(self):
-		for k in type(self).__dict__:
-			if k.startswith("cli_") and callable(type(self).__dict__[k]):
-				self.__cliHandlers.append(NaviCommand(type(self).__dict__[k], k[len("cli_"):]))
+			if asyncio.iscoroutinefunction(type(self).__dict__[k]):
+				if k.startswith("cli_"):
+					self.__cliHandlers[k[len("cli_"):]] = NaviCommand(type(self).__dict__[k], k[len("cli_"):])
+				elif k.startswith("command_owner_"):
+					self.__commandHandlers[k[len("command_owner_"):]] = NaviCommand(type(self).__dict__[k], k[len("command_owner_"):], ownerOnly=True)
+				elif k.startswith("command_"):
+					self.__commandHandlers[k[len("command_"):]] = NaviCommand(type(self).__dict__[k], k[len("command_"):])
 
 	def __isOwner(self, author):
 		return author.id in self.__configManager.obter("commands.owners")
@@ -593,12 +607,14 @@ class NaviBot:
 **#{rank}** (:flag_{country}: **#{countryrank}**)
 
 **Join date:**	{joindate}
+**Playtime:** {playtime:.2f} day(s)
 **Playcount:**	{playcount}
 **PP:**	{ppraw}
-**Accuracy:**	{accuracy}
+**Accuracy:**	{accuracy:.2f}
+**Level:**	{level:.2f}
 
 *View on* [osu.ppy.sh]({link})
-""".format(rank=json["pp_rank"], country=json["country"].lower(), countryrank=json["pp_country_rank"], joindate=json["join_date"], playcount=json["playcount"], ppraw=json["pp_raw"], accuracy=json["accuracy"], link="https://" + self.__configManager.obter("external.osu.api_domain") + "/u/" + json["user_id"])
+""".format(rank=json["pp_rank"], country=json["country"].lower(), countryrank=json["pp_country_rank"], joindate=json["join_date"], playtime=int(json["total_seconds_played"]) / 86400, playcount=json["playcount"], ppraw=json["pp_raw"], accuracy=float(json["accuracy"]), level=float(json["level"]), link="https://" + self.__configManager.obter("external.osu.api_domain") + "/u/" + json["user_id"])
 
 		embed = discord.Embed(title="Perfil de " + json["username"], description=description,color=discord.Colour.magenta())
 		embed.set_thumbnail(url="https://" + self.__configManager.obter("external.osu.api_assets") + "/" + json["user_id"])
@@ -610,7 +626,8 @@ class NaviBot:
 	async def command_help(self, h, args, flags, client, message):
 		helptext = "**Comandos disponíveis**\n\n"
 
-		for h in self.__commandHandlers:
+		for k in self.__commandHandlers.keys():
+			h = self.__commandHandlers[k]
 			helptext = helptext + "`{}`\n{}\n\n".format(h.obterAtivador(), self.__configManager.obter("commands.descriptions.{}".format(h.obterNomeCallback())))
 
 		await self.send_feedback(message, NaviFeedback.SUCCESS, text=helptext)
@@ -714,25 +731,25 @@ class NaviBot:
 	
 	async def cli_select(self, client, args, flags):
 		if len(args) < 2 and not "show" in flags:
-			self.__logManager.write("Uso:\nselect <channelid> [--user] [--show]", logtype=LogType.INFO)
+			self.__logManager.write("Uso:\nselect <channelid> [--user] [--show]", logtype=LogType.DEBUG)
 			return
 
 		if "show" in flags:
 			if self.__cliSelectedChannel == None:
-				self.__logManager.write("Nenhum canal/usuário está selecionado", logtype=LogType.INFO)
+				self.__logManager.write("Nenhum canal/usuário está selecionado", logtype=LogType.DEBUG)
 			elif type(self.__cliSelectedChannel) == discord.User:
-				self.__logManager.write("O usuário selecionado é: {} ({})".format(self.__cliSelectedChannel.name, self.__cliSelectedChannel.id), logtype=LogType.INFO)
+				self.__logManager.write("O usuário selecionado é: {} ({})".format(self.__cliSelectedChannel.name, self.__cliSelectedChannel.id), logtype=LogType.DEBUG)
 			elif type(self.__cliSelectedChannel) == discord.TextChannel:
-				self.__logManager.write("O canal selecionado é: {}#{} ({})".format(self.__cliSelectedChannel.guild.name, self.__cliSelectedChannel.name, self.__cliSelectedChannel.id), logtype=LogType.INFO)
+				self.__logManager.write("O canal selecionado é: {}#{} ({})".format(self.__cliSelectedChannel.guild.name, self.__cliSelectedChannel.name, self.__cliSelectedChannel.id), logtype=LogType.DEBUG)
 			else:
-				self.__logManager.write("O canal selecionado é: {}".format(str(self.__cliSelectedChannel)), logtype=LogType.INFO)
+				self.__logManager.write("O canal selecionado é: {}".format(str(self.__cliSelectedChannel)), logtype=LogType.DEBUG)
 
 			return
 
 		try:
 			cid = int(args[1])
 		except Exception:
-			self.__logManager.write("O id informado não é um número", logtype=LogType.ERROR)
+			self.__logManager.write("O id informado não é um número", logtype=LogType.DEBUG)
 			return
 
 		if "user" in flags:
@@ -741,17 +758,17 @@ class NaviBot:
 			self.__cliSelectedChannel = client.get_channel(cid)
 
 		if self.__cliSelectedChannel == None or (type(self.__cliSelectedChannel) != discord.TextChannel and type(self.__cliSelectedChannel) != discord.User):
-			self.__logManager.write("O id informado não é um canal/usuário válido", logtype=LogType.ERROR)
+			self.__logManager.write("O id informado não é um canal/usuário válido", logtype=LogType.DEBUG)
 		else:
 			await self.cli_select(client, {}, {"show": True})
 
 	async def cli_say(self, client, args, flags):
 		if len(args) < 2:
-			self.__logManager.write("Uso:\nsay <mensagem> [mensagem2...]", logtype=LogType.INFO)
+			self.__logManager.write("Uso:\nsay <mensagem> [mensagem2...]", logtype=LogType.DEBUG)
 			return
 
 		if self.__cliSelectedChannel == None:
-			self.__logManager.write("Nenhum canal foi selecionado para enviar a mensagem, selecione utilizando o comando 'select'", logtype=LogType.INFO)
+			self.__logManager.write("Nenhum canal foi selecionado para enviar a mensagem, selecione utilizando o comando 'select'", logtype=LogType.DEBUG)
 			return
 
 		try:
