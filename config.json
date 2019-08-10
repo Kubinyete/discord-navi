@@ -8,18 +8,44 @@
 	},
 	"commands": {
 		"owners": [],
+		"scripts": [
+			{
+				"command": "figlet",
+				"command_exec": "figlet",
+				"command_args": [],
+				"command_cargs": 1,
+				"command_input": "{fullargs}",
+				"command_info": "Uso\nfiglet <text>",
+				"owner_only": false,
+				"enabled": true,
+				"timeout": 1
+			},
+			{
+				"command": "bc",
+				"command_exec": "bc",
+				"command_args": [],
+				"command_cargs": 1,
+				"command_input": "{fullargs}\n",
+				"command_info": "Uso\nbc <expression>",
+				"owner_only": false,
+				"enabled": true,
+				"timeout": 1
+			}
+		],
 		"descriptions": {
-			"command_ping": "Para testar se o bot está vivo ¯\\_(ツ)_/¯",
-			"command_owner_setprefix": "Apenas para usuários especificados, troca o prefixo de ativação do bot independentemente do servidor.",
-			"command_owner_setgame": "Apenas para usuários especificados, atualiza o status de jogo do bot.",
-			"command_owner_send": "Apenas para usuários especificados, envia uma mensagem para o canal especificado.",
-			"command_owner_argtester": "Apenas para usuários especificados, retorna informações sobre os argumentos e suas flags.",
-			"command_owner_task": "Apenas para usuários especificados, permite ativar/desativar/mostrar tarefas presentes no bot.",
-			"command_remind": "Registra um lembrete após o tempo especificado, envia o lembrete através de um canal privado.",
-			"command_embed": "Retorna uma mensagem do tipo \"embed\" de acordo com os parâmetros passados.",
-			"command_avatar": "Retorna a imagem do usuário mencionado.",
-			"command_help": "Permite visualizar todos os comandos e informações do bot.",
-			"command_osu": "Retorna o perfil do osu! de determinado usuário."
+			"ping": "Para testar se o bot está vivo ¯\\_(ツ)_/¯",
+			"setprefix": "Apenas para usuários especificados, troca o prefixo de ativação do bot independentemente do servidor.",
+			"setgame": "Apenas para usuários especificados, atualiza o status de jogo do bot.",
+			"send": "Apenas para usuários especificados, envia uma mensagem para o canal especificado.",
+			"argtester": "Apenas para usuários especificados, retorna informações sobre os argumentos e suas flags.",
+			"task": "Apenas para usuários especificados, permite ativar/desativar/mostrar tarefas presentes no bot.",
+			"remind": "Registra um lembrete após o tempo especificado, envia o lembrete através de um canal privado.",
+			"embed": "Retorna uma mensagem do tipo \"embed\" de acordo com os parâmetros passados.",
+			"avatar": "Retorna a imagem do usuário mencionado.",
+			"help": "Permite visualizar todos os comandos e informações do bot.",
+			"osu": "Retorna o perfil do osu! de determinado usuário.",
+			"figlet": "Retorna a frase informada em um texto ASCII",
+			"bc": "Retona o resultado de uma expressão matemática"
 		}
 	},
 	"cli": {

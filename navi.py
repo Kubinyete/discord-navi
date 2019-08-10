@@ -2,6 +2,7 @@ import asyncio
 import os
 import sys
 import platform
+import subprocess
 import select
 import discord
 import enum
@@ -80,8 +81,8 @@ class NaviClient(discord.Client):
 		await self.close()
 
 class NaviRoutine:
-	def __init__(self, callback, name=None, every=None, unit=None, staticArgs={}, isPersistent=False, canWait=False):
-		self.__enabled = True
+	def __init__(self, callback, name=None, every=None, unit=None, staticArgs={}, isPersistent=False, canWait=False, isEnabled=True):
+		self.__enabled = isEnabled
 		self.__isRunning = False
 		self.__isPersistent = isPersistent
 		self.__canWait = canWait
@@ -166,9 +167,11 @@ class NaviRoutine:
 			asyncio.get_running_loop().create_task(self.obterRotina()(clientOrigem, self, runtimeArgs))
 
 class NaviCommand:
-	def __init__(self, callback, ativador=None, ownerOnly=False):
+	def __init__(self, callback, ativador=None, ownerOnly=False, isEnabled=True, staticArgs={}):
 		self.setCallback(callback, ativador)
 		self.__ownerOnly = ownerOnly
+		self.__enabled = isEnabled
+		self.__staticArgs = staticArgs
 
 	def obterCallback(self):
 		return self.__callback
@@ -195,6 +198,9 @@ class NaviCommand:
 
 	def setAtivador(self, valor):
 		self.__ativador = valor
+
+	def obterArgs(self):
+		return self.__staticArgs
 
 	def obterOwnerOnly(self):
 		return self.__ownerOnly
@@ -426,8 +432,10 @@ class NaviBot:
 		if h == None:
 			return
 
-		if h.obterOwnerOnly() and not self.__isOwner(message.author):
-			asyncio.get_running_loop().create_task(self.send_feedback(message, NaviFeedback.ERROR))
+		if not h.obterAtivado():
+			asyncio.get_running_loop().create_task(self.send_feedback(message, NaviFeedback.WARNING, text="Este comando está atualmente desativado"))
+		elif h.obterOwnerOnly() and not self.__isOwner(message.author):
+			asyncio.get_running_loop().create_task(self.send_feedback(message, NaviFeedback.ERROR, text="Você não ter permissão para realizar esta ação"))
 		else:
 			asyncio.get_running_loop().create_task(h.obterCallback()(self, h, args, flags, client, message))
 
@@ -442,6 +450,7 @@ class NaviBot:
 	# @NOTE
 	# Para facilitar o uso do Bot e de manutenção de seus comandos, resolvi fazer um inicializador que já verifica quais métodos são comandos executáveis.
 	def __inicializarComandos(self):
+		# Nativos
 		for k in type(self).__dict__:
 			if asyncio.iscoroutinefunction(type(self).__dict__[k]):
 				if k.startswith("cli_"):
@@ -450,6 +459,10 @@ class NaviBot:
 					self.__commandHandlers[k[len("command_owner_"):]] = NaviCommand(type(self).__dict__[k], k[len("command_owner_"):], ownerOnly=True)
 				elif k.startswith("command_"):
 					self.__commandHandlers[k[len("command_"):]] = NaviCommand(type(self).__dict__[k], k[len("command_"):])
+
+		# Externos
+		for script in self.__configManager.obter("commands.scripts"):
+			self.__commandHandlers[script["command"]] = NaviCommand(type(self).__dict__["generic_runshell"], ativador=script["command"], ownerOnly=script["owner_only"], isEnabled=script["enabled"], staticArgs=script)
 
 	def __isOwner(self, author):
 		return author.id in self.__configManager.obter("commands.owners")
@@ -502,6 +515,38 @@ class NaviBot:
 
 	# @SECTION
 	# Manipuladores de cada comando (são automaticamente detectados ao iniciar com o prefixo 'command_' ou 'command_owner')
+
+	# É um command, porém é generico, ou seja, utilizado por outros objetos NaviCommand, portanto não tente adicioná-lo automaticamente utilizando o prefixo generic_ (ao invés de command_)
+	async def generic_runshell(self, h, args, flags, client, message):
+		# Pega o argumento de execução do nosso handler NaviCommand() acima de nós
+		cmdArgs = h.obterArgs()
+		fullargs = ""
+
+		if len(args) - 1 < cmdArgs["command_cargs"]:
+			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text=cmdArgs["command_info"])
+			return
+
+		if "fullargs" in cmdArgs["command_input"]:
+			fullargs = " ".join(args[1:])
+
+		try:
+			p = subprocess.run([cmdArgs["command_exec"]] + cmdArgs["command_args"], input=cmdArgs["command_input"].format(args=args, flags=flags, fullargs=fullargs), capture_output=True, encoding="utf-8", timeout=cmdArgs["timeout"])
+		except subprocess.TimeoutExpired:
+			await self.send_feedback(message, NaviFeedback.WARNING, text="O tempo de limite foi atingido para o subprocesso")
+			return
+		except Exception:
+			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
+			return
+
+		if len(p.stdout) > 2000:
+			await self.send_feedback(message, NaviFeedback.WARNING, text="O conteudo resultante é muito grande, por favor insira um texto menor")
+			return
+		elif len(p.stdout) < 1:
+			await self.send_feedback(message, NaviFeedback.WARNING, text="Nenhum conteúdo resultante")
+			return
+
+		await self.send_feedback(message, NaviFeedback.SUCCESS, code=True, text=p.stdout)
+		return
 
 	async def command_ping(self, h, args, flags, client, message):
 		await self.send_feedback(message, NaviFeedback.SUCCESS, text="pong!")
@@ -628,7 +673,7 @@ class NaviBot:
 
 		for k in self.__commandHandlers.keys():
 			h = self.__commandHandlers[k]
-			helptext = helptext + "`{}`\n{}\n\n".format(h.obterAtivador(), self.__configManager.obter("commands.descriptions.{}".format(h.obterNomeCallback())))
+			helptext = helptext + "`{}`\n{}\n\n".format(h.obterAtivador(), self.__configManager.obter("commands.descriptions.{}".format(h.obterAtivador())))
 
 		await self.send_feedback(message, NaviFeedback.SUCCESS, text=helptext)
 
