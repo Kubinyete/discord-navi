@@ -605,6 +605,7 @@ class NaviBot:
 		embed.set_image(url=image)
 		embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
 
+		await message.channel.send(embed=embed)
 		await self.send_feedback(message, NaviFeedback.SUCCESS)
 
 	async def command_avatar(self, h, args, flags, client, message):
