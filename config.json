@@ -23,7 +23,7 @@
 			{
 				"command": "bc",
 				"command_exec": "bc",
-				"command_args": [],
+				"command_args": ["-l"],
 				"command_cargs": 1,
 				"command_input": "{fullargs}\n",
 				"command_info": "Uso\nbc <expression>",

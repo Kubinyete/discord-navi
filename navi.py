@@ -637,7 +637,7 @@ class NaviBot:
 				modeid = 3
 
 		try:
-			json = await self.__fetchJson("https://" + self.__configManager.obter("external.osu.api_domain") + self.__configManager.obter("external.osu.api_getuser"), {"k": self.__configManager.obter("external.osu.api_key"), "u": " ".join(args[1:]), "mode": modeid, "type": "string"})
+			json = await self.__fetchJson("https://" + self.__configManager.obter("external.osu.api_domain") + self.__configManager.obter("external.osu.api_getuser"), {"k": self.__configManager.obter("external.osu.api_key"), "u": " ".join(args[1:]), "m": modeid, "type": "string"})
 
 			if len(json) > 0:
 				json = json[0]
