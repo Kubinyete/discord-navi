@@ -435,7 +435,7 @@ class NaviBot:
 		if not h.obterAtivado():
 			asyncio.get_running_loop().create_task(self.send_feedback(message, NaviFeedback.WARNING, text="Este comando está atualmente desativado"))
 		elif h.obterOwnerOnly() and not self.__isOwner(message.author):
-			asyncio.get_running_loop().create_task(self.send_feedback(message, NaviFeedback.ERROR, text="Você não ter permissão para realizar esta ação"))
+			asyncio.get_running_loop().create_task(self.send_feedback(message, NaviFeedback.WARNING, text="Você não ter permissão para realizar esta ação"))
 		else:
 			asyncio.get_running_loop().create_task(h.obterCallback()(self, h, args, flags, client, message))
 
@@ -542,6 +542,10 @@ class NaviBot:
 			await self.send_feedback(message, NaviFeedback.WARNING, text="O conteudo resultante é muito grande, por favor insira um texto menor")
 			return
 		elif len(p.stdout) < 1:
+			if len(p.stderr) > 0:
+				await self.send_feedback(message, NaviFeedback.WARNING, text=p.stderr)
+				return
+
 			await self.send_feedback(message, NaviFeedback.WARNING, text="Nenhum conteúdo resultante")
 			return
 
@@ -568,7 +572,7 @@ class NaviBot:
 			return
 
 		if every == None or unit == None:
-			await self.send_feedback(message, NaviFeedback.ERROR, text="O argumento '--time' não está em um formato valido")
+			await self.send_feedback(message, NaviFeedback.WARNING, text="O argumento '--time' não está em um formato valido")
 			return
 
 		tarefa_str = "{}_{}".format(str(message.author.id), self.callbackRemind.__name__)
@@ -579,7 +583,7 @@ class NaviBot:
 			asyncio.get_running_loop().create_task(self.__agendarTarefa(tarefa, {"remind_text": " ".join(args[1:]), "message": message}))
 			await self.send_feedback(message, NaviFeedback.SUCCESS)
 		else:
-			await self.send_feedback(message, NaviFeedback.ERROR, text="Recentemente já foi solicitado um 'remind', tente novamente mais tarde")
+			await self.send_feedback(message, NaviFeedback.WARNING, text="Recentemente já foi solicitado um 'remind', tente novamente mais tarde")
 
 	async def command_embed(self, h, args, flags, client, message):
 		if len(args) < 2 and (not "title" in flags and not "img" in flags):
@@ -643,7 +647,7 @@ class NaviBot:
 			if len(json) > 0:
 				json = json[0]
 			else:
-				await self.send_feedback(message, NaviFeedback.ERROR, text="Não foi encontrado nenhum usuário com esse nome")
+				await self.send_feedback(message, NaviFeedback.WARNING, text="Não foi encontrado nenhum usuário com esse nome")
 				return
 		except Exception as e:
 			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
@@ -718,24 +722,21 @@ class NaviBot:
 			await self.send_feedback(message, NaviFeedback.COMMAND_INFO, text="Uso:\nsend <channelid> <mensagem> [mensagem2...] [--user]")
 			return
 		
-		try:
-			c = None
+		c = None
 
-			if not "user" in flags:
-				c = client.get_channel(int(args[1]))
-			else:
-				c = client.get_user(int(args[1]))
+		if not "user" in flags:
+			c = client.get_channel(int(args[1]))
+		else:
+			c = client.get_user(int(args[1]))
 
-			if c != None:
-				try:
-					await c.send(" ".join(args[2:]))
-					await self.send_feedback(message, NaviFeedback.SUCCESS)
-				except Exception as e:
-					await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
-			else:
-				await self.send_feedback(message, NaviFeedback.ERROR, text="O id do canal/usuário não foi encontrado (está esquecendo do --user?)")
-		except Exception as e:
-			await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
+		if c != None:
+			try:
+				await c.send(" ".join(args[2:]))
+				await self.send_feedback(message, NaviFeedback.SUCCESS)
+			except Exception as e:
+				await self.send_feedback(message, NaviFeedback.ERROR, exception=e)
+		else:
+			await self.send_feedback(message, NaviFeedback.WARNING, text="O cliente não conseguiu obter o canal/usuário (não tem acesso)")
 
 	async def command_owner_argtester(self, h, args, flags, client, message):
 		await self.send_feedback(message, NaviFeedback.SUCCESS, text="handler={}\nativador={}\nargs={}\nflags={}".format(h.obterNomeCallback(), h.obterAtivador(), str(args), str(flags)))
@@ -758,7 +759,7 @@ class NaviBot:
 		try:
 			tarefa = self.__tarefasAgendadas[args[1]]
 		except Exception:
-			await self.send_feedback(message, NaviFeedback.ERROR, text="A tarefa não foi encontrada")
+			await self.send_feedback(message, NaviFeedback.WARNING, text="A tarefa não foi encontrada")
 			return
 
 		if "enable" in flags:
