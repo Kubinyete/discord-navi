@@ -2,7 +2,7 @@ from navilog import LogType
 import json
 
 class ConfigManager:
-	def __init__(self, configpath, logmanager=None):
+	def __init__(self, configpath, logmanager):
 		self.__configValues = {}
 		self.__logManager = logmanager
 
@@ -10,6 +10,9 @@ class ConfigManager:
 		self.carregarConfig()
 
 	def atualizarPath(self, configpath):
+		if type(configpath) != str:
+			raise TypeError("'{}' não é uma str".format(configpath))
+
 		self.__configPath = configpath
 		
 	def carregarConfig(self):
@@ -33,7 +36,7 @@ class ConfigManager:
 			for i in chaves:
 				valorAtual = valorAtual[i]
 		except IndexError:
-			valorAtual = ""
 			self.__logManager.write("Não foi possível encontrar a chave de configurações (" + indice + ")", LogType.ERROR)
+			return None
 
 		return valorAtual

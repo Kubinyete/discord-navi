@@ -1,4 +1,3 @@
-
 ANSI_CODES = {
 	"reset": "0",
 	"bold": "1",
@@ -68,6 +67,8 @@ def listarArgumentos(string):
 					args.append(buffer)
 					buffer = ""
 			else:
+				if stringEscape:
+					buffer += "\\"
 				stringEscape = False
 				buffer += c
 
