@@ -101,7 +101,7 @@ class NaviBot:
 			timespent = 0
 
 			while rotina.getIsEnabled():
-				rotina.setIsEnabled(True)
+				rotina.setIsRunning(True)
 
 				await asyncio.sleep(segundos - timespent)
 
