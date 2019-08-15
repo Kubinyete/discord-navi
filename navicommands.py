@@ -104,7 +104,7 @@ async def command_remind(bot, h, client, message, args, flags):
 
 	if tarefa == None:
 		tarefa = NaviRoutine(bot, navicallbacks.callbackRemind, name=tarefa_str, every=every, unit=unit, canWait=True)
-		asyncio.get_running_loop().create_task(bot.agendarTarefa(tarefa, {"remind_text": " ".join(args[1:]), "message": message}))
+		await bot.agendarTarefa(tarefa, {"remind_text": " ".join(args[1:]), "message": message})
 		await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS)
 	else:
 		await bot.sendFeedback(message, navibot.NaviFeedback.WARNING, text="Recentemente já foi solicitado um 'remind', tente novamente mais tarde")
@@ -221,7 +221,8 @@ async def command_owner_setgame(bot, h, client, message, args, flags):
 		return
 	
 	if "clear" in flags:
-		asyncio.get_running_loop().create_task(bot.agendarTarefa(task, {"loop": True}))
+		await bot.agendarTarefa(task, {"loop": True})
+
 		await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS)
 	else:
 		task.setIsEnabled(False)

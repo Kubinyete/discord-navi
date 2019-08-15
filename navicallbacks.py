@@ -20,7 +20,7 @@ async def callbackLog(navibot, client, rotinaOrigem, runtimeArgs):
 
 async def callbackActivity(navibot, client, rotinaOrigem, runtimeArgs):
 	if not "loop" in runtimeArgs:
-		asyncio.get_running_loop().create_task(navibot.agendarTarefa(NaviRoutine(navibot, callbackActivity, every=navibot.configManager.obter("global.bot_playing_delay"), unit="s", isPersistent=True), {"loop": True}))
+		await navibot.agendarTarefa(NaviRoutine(navibot, callbackActivity, every=navibot.configManager.obter("global.bot_playing_delay"), unit="s", isPersistent=True), {"loop": True})
 		return
 
 	activities = navibot.configManager.obter("global.bot_playing")
@@ -49,7 +49,7 @@ async def callbackCommandHandler(navibot, client, rotinaOrigem, runtimeArgs):
 
 async def callbackCliListener(navibot, client, rotinaOrigem, runtimeArgs):
 	if not "loop" in runtimeArgs.keys():
-		asyncio.get_running_loop().create_task(navibot.agendarTarefa(NaviRoutine(navibot, callbackCliListener, every=navibot.configManager.obter("cli.update_delay"), unit="ms", isPersistent=True), {"loop": True}))
+		await navibot.agendarTarefa(NaviRoutine(navibot, callbackCliListener, every=navibot.configManager.obter("cli.update_delay"), unit="ms", isPersistent=True), {"loop": True})
 		return
 
 	clilines = []
