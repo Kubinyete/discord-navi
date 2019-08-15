@@ -72,6 +72,35 @@ class NaviBot:
 		async with self.httpClientSession.get(url, params=params) as resposta:
 			return await resposta.json()
 
+	async def __loopTarefa(self, rotina, futureRuntimeArgs):
+		segundos = rotina.getIntervalInSeconds()
+
+		timespent = 0
+
+		while rotina.getIsEnabled():
+			rotina.setIsRunning(True)
+
+			await asyncio.sleep(segundos - timespent)
+
+			if rotina.getIsEnabled():
+				timespent = time.time()
+				
+				await rotina.run(self.naviClient, futureRuntimeArgs)
+				
+				timespent = time.time() - timespent
+				
+				if timespent >= segundos:
+					# Perdemos um ou mais ciclos da tarefa, apenas notifique o log
+					self.logManager.write("Perdido um ciclo de execução da tarefa '{}', timespent = '{:.3f}', segundos= '{}'".format(rotina.obterNome(), timespent, segundos), logtype=LogType.WARNING)
+					timespent = 0
+
+		rotina.setIsRunning(False)
+
+		# Se esta rotina não for do sistema, não poderá ser ativada e desativada como quiser, portanto retire da estrutura
+		if not rotina.getIsPersistent():
+			self.__tarefasAgendadas.pop(rotina.getName())
+
+
 	async def agendarTarefa(self, rotina, futureRuntimeArgs={}):
 		segundos = rotina.getIntervalInSeconds()
 		
@@ -80,12 +109,10 @@ class NaviBot:
 		else:
 			# Ja existe essa tarefa
 			if rotina.getName() in self.__tarefasAgendadas.keys():
-				# Se for outra com o mesmo nome, pare
-				# @NOTE
 				# Escrever novamente a logica desta parte, pois queremos que aconteça o seguinte:
 				# Caso já exista a tarefa, verifique se ela está rodanndo, caso não, substitua, se não, jogue uma Exception
-				if rotina != self.__tarefasAgendadas[rotina.getName()]:
-					raise Exception("A tarefa '{}' a ser inserida não pode substituir a atual '{}'".format(rotina, self.__tarefasAgendadas[rotina.getName()]))
+				if rotina != self.__tarefasAgendadas[rotina.getName()] and self.__tarefasAgendadas[rotina.getName()].getIsRunning():
+						raise Exception("A tarefa '{}' a ser inserida não pode substituir a atual '{}' pos ainda está em execução".format(rotina, self.__tarefasAgendadas[rotina.getName()]))
 				else:
 					rotina.setIsEnabled(True)
 
@@ -98,34 +125,7 @@ class NaviBot:
 			# Caso contrário, irá inserir como uma nova
 			self.__tarefasAgendadas[rotina.getName()] = rotina
 
-			timespent = 0
-
-			while rotina.getIsEnabled():
-				rotina.setIsRunning(True)
-
-				await asyncio.sleep(segundos - timespent)
-
-				if rotina.getIsEnabled():
-					# @TODO
-					# Precisamos utilizar await nesta chamada abaixo, pois caso a tarefa acabe mas não dê tempo dela desativar sozinha seu estado de desativada,
-					# esse loop continua e entra no sleep novamente, portanto devemos fazer cada chamada esperar o termino, e calculamos o tempo que perdemos nesta
-					# execução e retiramos do sleep na proxima iteração (caso houver uma)
-					# asyncio.get_running_loop().create_task(rotina.executar(self.naviClient))
-					
-					timespent = time.time()
-					await rotina.run(self.naviClient, futureRuntimeArgs)
-					timespent = time.time() - timespent
-					
-					if timespent >= segundos:
-						# Perdemos um ou mais ciclos da tarefa, apenas notifique o log
-						self.logManager.write("Perdido um ciclo de execução da tarefa '{}', timespent = '{:.3f}', segundos= '{}'".format(rotina.obterNome(), timespent, segundos), logtype=LogType.WARNING)
-						timespent = 0
-
-			rotina.setIsRunning(False)
-
-			# Se esta rotina não for do sistema, não poderá ser ativada e desativada como quiser, portanto retire da estrutura
-			if not rotina.getIsPersistent():
-				self.__tarefasAgendadas.pop(rotina.getName())
+			asyncio.get_running_loop().create_task(self.__loopTarefa(rotina, futureRuntimeArgs))
 
 	def obterTarefaAgendada(self, nome):
 		if not nome in self.__tarefasAgendadas:
