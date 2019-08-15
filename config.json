@@ -1,6 +1,6 @@
 {
 	"global": {
-		"bot_token": "BOT_TOKEN",
+		"bot_token": "DISCORD_BOT_TOKEN",
 		"bot_prefix": ";;",
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
 		"bot_playing_delay": 30,
@@ -12,10 +12,8 @@
 			{
 				"command": "figlet",
 				"command_exec": "figlet",
-				"command_args": [],
-				"command_cargs": 1,
+				"command_exec_args": "",
 				"command_input": "{fullargs}",
-				"command_info": "Uso\nfiglet <text>",
 				"owner_only": false,
 				"enabled": true,
 				"timeout": 1
@@ -23,37 +21,81 @@
 			{
 				"command": "bc",
 				"command_exec": "bc",
-				"command_args": ["-l"],
-				"command_cargs": 1,
+				"command_exec_args": "-l",
 				"command_input": "{fullargs}\n",
-				"command_info": "Uso\nbc <expression>",
 				"owner_only": false,
 				"enabled": true,
 				"timeout": 1
 			}
 		],
 		"descriptions": {
-			"ping": "Para testar se o bot está vivo ¯\\_(ツ)_/¯",
-			"setprefix": "Apenas para usuários especificados, troca o prefixo de ativação do bot independentemente do servidor.",
-			"setgame": "Apenas para usuários especificados, atualiza o status de jogo do bot.",
-			"send": "Apenas para usuários especificados, envia uma mensagem para o canal especificado.",
-			"argtester": "Apenas para usuários especificados, retorna informações sobre os argumentos e suas flags.",
-			"task": "Apenas para usuários especificados, permite ativar/desativar/mostrar tarefas presentes no bot.",
-			"remind": "Registra um lembrete após o tempo especificado, envia o lembrete através de um canal privado.",
-			"embed": "Retorna uma mensagem do tipo \"embed\" de acordo com os parâmetros passados.",
-			"avatar": "Retorna a imagem do usuário mencionado.",
-			"help": "Permite visualizar todos os comandos e informações do bot.",
-			"osu": "Retorna o perfil do osu! de determinado usuário.",
-			"figlet": "Retorna a frase informada em um texto ASCII",
-			"bc": "Retona o resultado de uma expressão matemática"
+			"send": {
+				"text": "Apenas para usuários especificados, envia uma mensagem para o canal especificado .",
+				"usage": "send <channelid> <texto> [--user]"
+			},
+			"setgame": {
+				"text": "Apenas para usuários especificados, atualiza o status de jogo do bot.",
+				"usage": "setgame <texto> [--clear]"
+			},
+			"setprefix": {
+				"text": "Apenas para usuários especificados, troca o prefixo de ativação do bot independentemente do servidor.",
+				"usage": "setprefix [prefixo] [--clear]"
+			},
+			"avatar": {
+				"text": "Retorna a imagem do usuário mencionado.",
+				"usage": "avatar <@Usuario>"
+			},
+			"help": {
+				"text": "Permite visualizar todos os comandos e informações do bot, especificar um comando como parâmetro mostrará mais informações detalhadas de uso.",
+				"usage": "help [cmd]"
+			},
+			"embed": {
+				"text": "Retorna uma mensagem do tipo 'embed' de acordo com os parâmetros passados.",
+				"usage": "embed [descrição] [--title=texto] [--img=url]"
+			},
+			"remind": {
+				"text": "Registra um lembrete após o tempo especificado, envia o lembrete através de um canal privado, o parâmetro '--time' deverá ser informado juntamente com um número e unidade de tempo (Ex: --time=10s) onde: s=segundos, m=minutos e h=horas.",
+				"usage": "remind <texto> [--time=[0-9]+(s|m|h)]"
+			},
+			"osu": {
+				"text": "Retorna um perfil osu! de determinado usuário, o modo de jogo padrão é 'standard'",
+				"usage": "osu <username> [--mode=std|taiko|ctb|mania]"
+			},
+			"figlet": {
+				"text": "Utiliza o 'figlet' para retornar a frase informada em um texto ASCII de figuras.",
+				"usage": "figlet <texto>"
+			},
+			"bc": {
+				"text": "Utiliza o 'bc' para retonar o resultado de uma expressão (Ex: (1 + 1) * 2).",
+				"usage": "bc <expressão>"
+			}
 		}
 	},
 	"cli": {
-		"update_delay": 200
+		"update_delay": 200,
+		"commands": {
+			"descriptions": {
+				"help": {
+					"usage": "help"
+				},
+				"echo": {
+					"usage": "echo <texto>"
+				},
+				"select": {
+					"usage": "select <channelid> [--user] [--show]"
+				},
+				"say": {
+					"usage": "say <texto>"
+				},
+				"quit": {
+					"usage": "quit"
+				}
+			}
+		}
 	},
 	"external": {
 		"osu": {
-			"api_key": "OSU_KEY",
+			"api_key": "OSU_API_KEY",
 			"api_domain": "osu.ppy.sh",
 			"api_assets": "a.ppy.sh",
 			"api_getuser": "/api/get_user"

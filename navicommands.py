@@ -16,7 +16,21 @@ async def generic_runshell(bot, h, client, message, args, flags):
 	cmdArgs = h.getStaticArgs()
 	fullargs = ""
 
-	if len(args) - 1 < cmdArgs["command_cargs"]:
+	qtdArgs = 0
+
+	for m in re.findall(r"{args\[[0-9]+\]}", cmdArgs["command_input"]):
+		i = int(re.search(r"[0-9]+", m)[0])
+
+		if i > qtdArgs:
+			qtdArgs = i
+
+	for m in re.findall(r"{args\[[0-9]+\]}", cmdArgs["command_exec_args"]):
+		i = int(re.search(r"[0-9]+", m)[0])
+
+		if i > qtdArgs:
+			qtdArgs = i
+
+	if len(args) - 1< qtdArgs:
 		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text=cmdArgs["command_info"])
 		return
 
@@ -24,11 +38,11 @@ async def generic_runshell(bot, h, client, message, args, flags):
 		fullargs = " ".join(args[1:])
 
 	try:
-		p = subprocess.run([cmdArgs["command_exec"]] + cmdArgs["command_args"], input=cmdArgs["command_input"].format(args=args, flags=flags, fullargs=fullargs), capture_output=True, encoding="utf-8", timeout=cmdArgs["timeout"])
+		p = subprocess.run("{} {}".format(cmdArgs["command_exec"], cmdArgs["command_exec_args"].format(args=args, flags=flags, fullargs=fullargs)), input=cmdArgs["command_input"].format(args=args, flags=flags, fullargs=fullargs), shell=True, capture_output=True, encoding="utf-8", timeout=cmdArgs["timeout"])
 	except subprocess.TimeoutExpired:
 		await bot.sendFeedback(message, navibot.NaviFeedback.WARNING, text="O tempo de limite foi atingido para o subprocesso")
 		return
-	except Exception:
+	except Exception as e:
 		await bot.sendFeedback(message, navibot.NaviFeedback.ERROR, exception=e)
 		return
 
@@ -46,12 +60,28 @@ async def generic_runshell(bot, h, client, message, args, flags):
 	await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS, code=True, text=p.stdout)
 	return
 
-async def command_ping(bot, h, client, message, args, flags):
-	await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS, text="pong!")
+async def command_help(bot, h, client, message, args, flags):
+	helptext = ""
+
+	if len(args) < 2:
+		helptext = "**Comandos disponíveis**\n\n"
+
+		for k in bot.obterCommandHandlers():
+			helptext = helptext + "`{}`\n{}\n\n".format(k.getName(), k.getDescription())
+	else:
+		handler = bot.obterComando(args[1])
+
+		if handler:
+			helptext = "**{}**\n`Uso: {}`\n\n{}".format(handler.getName(), handler.getUsage(), handler.getDescription())
+		else:
+			await bot.sendFeedback(message, navibot.NaviFeedback.WARNING, text="O comando '{}' não existe".format(args[1]))
+			return
+
+	await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS, text=helptext)
 
 async def command_remind(bot, h, client, message, args, flags):
 	if len(args) < 2 or not "time" in flags:
-		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text="Uso:\nremind <nome_lembrete> [nome_lembrete2...] [--time=[0-9]+(s|m|h)]")
+		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text=h.getUsage())
 		return
 
 	try:
@@ -81,7 +111,7 @@ async def command_remind(bot, h, client, message, args, flags):
 
 async def command_embed(bot, h, client, message, args, flags):
 	if len(args) < 2 and (not "title" in flags and not "img" in flags):
-		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text="Uso:\nembed [description] [description2...] [--title=text] [--img=url]")
+		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text=h.getUsage())
 		return
 
 	title = ""
@@ -108,7 +138,7 @@ async def command_embed(bot, h, client, message, args, flags):
 
 async def command_avatar(bot, h, client, message, args, flags):
 	if len(message.mentions) != 1:
-		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text="Uso:\navatar <@Usuario>")
+		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text=h.getUsage())
 		return
 
 	user = message.mentions[0]
@@ -122,7 +152,7 @@ async def command_avatar(bot, h, client, message, args, flags):
 
 async def command_osu(bot, h, client, message, args, flags):
 	if len(args) < 2:
-		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text="Uso:\nosu <username> [--mode=std|taiko|ctb|mania]")
+		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text=h.getUsage())
 		return
 
 	modeid = 0
@@ -167,17 +197,9 @@ async def command_osu(bot, h, client, message, args, flags):
 	await message.channel.send(embed=embed)
 	await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS)
 
-async def command_help(bot, h, client, message, args, flags):
-	helptext = "**Comandos disponíveis**\n\n"
-
-	for k in bot.obterCommandHandlers():
-		helptext = helptext + "`{}`\n{}\n\n".format(k.getName(), bot.configManager.obter("commands.descriptions.{}".format(k.getName())))
-
-	await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS, text=helptext)
-
 async def command_owner_setprefix(bot, h, client, message, args, flags):
 	if len(args) < 2 and not "clear" in flags:
-		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text="Uso:\nsetprefix [prefixo] [--clear]")
+		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text=h.getUsage())
 		return
 
 	if "clear" in flags:
@@ -189,7 +211,7 @@ async def command_owner_setprefix(bot, h, client, message, args, flags):
 
 async def command_owner_setgame(bot, h, client, message, args, flags):
 	if len(args) < 2 and not "clear" in flags:
-		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text="Uso:\nsetgame [texto] [texto2...] [--clear]")
+		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text=h.getUsage())
 		return
 
 	task = bot.obterTarefaAgendada(navicallbacks.callbackActivity.__name__)
@@ -212,7 +234,7 @@ async def command_owner_setgame(bot, h, client, message, args, flags):
 
 async def command_owner_send(bot, h, client, message, args, flags):
 	if len(args) < 3:
-		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text="Uso:\nsend <channelid> <mensagem> [mensagem2...] [--user]")
+		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text=h.getUsage())
 		return
 	
 	c = None
@@ -231,45 +253,19 @@ async def command_owner_send(bot, h, client, message, args, flags):
 	else:
 		await bot.sendFeedback(message, navibot.NaviFeedback.WARNING, text="O cliente não conseguiu obter o canal/usuário (não tem acesso)")
 
-async def command_owner_argtester(bot, h, client, message, args, flags):
-	await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS, text="name={}\ncallback={}\nargs={}\nflags={}".format(h.getName(), h.getCallback().__name__, args, flags))
-
-async def command_owner_task(bot, h, client, message, args, flags):
-	if len(args) < 2 or (not "enable" in flags and not "disable" in flags):
-		if "show" in flags:
-			str = ""
-			for k in bot.obterTarefasAgendadas():
-				str = str + "**{}**\n`callback={},interval={}, enabled={}, isrunning={}, ispersistent={}`\n\n".format(k.getName(), k.getCallback().__name__, k.getInterval(), k.getIsEnabled(), k.getIsRunning(), k.getIsPersistent())
-
-			await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS, text=str)
-			return
-			
-		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text="Uso:\ntask [nome_tarefa] [--show] [--enable] [--disable]")
-		return
-
-	tarefa = bot.obterTarefaAgendada(args[1])
-
-	if tarefa == None:
-		await bot.sendFeedback(message, navibot.NaviFeedback.WARNING, text="A tarefa não foi encontrada")
-		return
-
-	if "enable" in flags:
-		if not tarefa.getIsEnabled():
-			asyncio.get_running_loop().create_task(bot.agendarTarefa(tarefa, {"loop": True}))
-	else:
-		tarefa.setIsEnabled(False)
-
-	await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS)
-
 # @SECTION
 # Comandos disponibilizados para a CLI oferecida pelo bot
+
+async def cli_help(bot, h, client, message, args, flags):
+	for k in bot.obterCliHandlers():
+		bot.logManager.write(k.getUsage(), logtype=LogType.DEBUG)
 
 async def cli_echo(bot, h, client, message, args, flags):
 	bot.logManager.write(" ".join(args[1:]), logtype=LogType.DEBUG)
 
 async def cli_select(bot, h, client, message, args, flags):
 	if len(args) < 2 and not "show" in flags:
-		bot.logManager.write("Uso:\nselect <channelid> [--user] [--show]", logtype=LogType.DEBUG)
+		bot.logManager.write(h.getUsage(), logtype=LogType.DEBUG)
 		return
 
 	if "show" in flags:
@@ -302,7 +298,7 @@ async def cli_select(bot, h, client, message, args, flags):
 
 async def cli_say(bot, h, client, message, args, flags):
 	if len(args) < 2:
-		bot.logManager.write("Uso:\nsay <mensagem> [mensagem2...]", logtype=LogType.DEBUG)
+		bot.logManager.write(h.getUsage(), logtype=LogType.DEBUG)
 		return
 
 	if bot.cliSelectedChannel == None:

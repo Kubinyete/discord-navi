@@ -1,4 +1,3 @@
-#!/bin/bash
 from navibot import NaviBot
 
 if __name__ == "__main__":

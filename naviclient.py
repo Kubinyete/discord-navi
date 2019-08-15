@@ -185,9 +185,11 @@ class NaviRoutine(NaviCallback):
 		return False
 
 class NaviCommand(NaviCallback):
-	def __init__(self, navibot, callback, name=None, staticArgs={}, ownerOnly=False, canWait=False, isEnabled=True):
+	def __init__(self, navibot, callback, name=None, staticArgs={}, ownerOnly=False, canWait=False, usage="", description="", isEnabled=True):
 		super().__init__(navibot, callback, name, staticArgs, canWait, isEnabled)
 		self.setOwnerOnly(ownerOnly)
+		self.setUsage(usage)
+		self.setDescription(description)
 
 	def getOwnerOnly(self):
 		return self.__ownerOnly
@@ -197,6 +199,24 @@ class NaviCommand(NaviCallback):
 			raise TypeError("'{}' não é um bool".format(state))
 
 		self.__ownerOnly = state
+
+	def getUsage(self):
+		return self.__usage
+
+	def setUsage(self, string):
+		if type(string) != str:
+			raise TypeError("'{}' não é um str".format(string))
+
+		self.__usage = string
+
+	def getDescription(self):
+		return self.__description
+
+	def setDescription(self, string):
+		if type(string) != str:
+			raise TypeError("'{}' não é um str".format(string))
+
+		self.__description = string
 
 	async def run(self, client, message, args, flags):
 		if self.getIsEnabled():

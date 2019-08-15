@@ -203,15 +203,15 @@ class NaviBot:
 		for k in navicommands.__dict__:
 			if asyncio.iscoroutinefunction(navicommands.__dict__[k]):
 				if k.startswith("cli_"):
-					self.__cliHandlers[k[len("cli_"):]] = NaviCommand(self, navicommands.__dict__[k], name=k[len("cli_"):])
+					self.__cliHandlers[k[len("cli_"):]] = NaviCommand(self, navicommands.__dict__[k], name=k[len("cli_"):], usage=self.configManager.obter("cli.commands.descriptions.{}.usage".format(k[len("cli_"):])))
 				elif k.startswith("command_owner_"):
-					self.__commandHandlers[k[len("command_owner_"):]] = NaviCommand(self, navicommands.__dict__[k], name=k[len("command_owner_"):], ownerOnly=True)
+					self.__commandHandlers[k[len("command_owner_"):]] = NaviCommand(self, navicommands.__dict__[k], name=k[len("command_owner_"):], ownerOnly=True, usage=self.configManager.obter("commands.descriptions.{}.usage".format(k[len("command_owner_"):])), description=self.configManager.obter("commands.descriptions.{}.text".format(k[len("command_owner_"):])))
 				elif k.startswith("command_"):
-					self.__commandHandlers[k[len("command_"):]] = NaviCommand(self, navicommands.__dict__[k], name=k[len("command_"):])
+					self.__commandHandlers[k[len("command_"):]] = NaviCommand(self, navicommands.__dict__[k], name=k[len("command_"):], usage=self.configManager.obter("commands.descriptions.{}.usage".format(k[len("command_"):])), description=self.configManager.obter("commands.descriptions.{}.text".format(k[len("command_"):])))
 
 		# Externos
 		for script in self.configManager.obter("commands.scripts"):
-			self.__commandHandlers[script["command"]] = NaviCommand(self, navicommands.__dict__["generic_runshell"], name=script["command"], ownerOnly=script["owner_only"], isEnabled=script["enabled"], staticArgs=script)
+			self.__commandHandlers[script["command"]] = NaviCommand(self, navicommands.__dict__["generic_runshell"], name=script["command"], ownerOnly=script["owner_only"], isEnabled=script["enabled"], staticArgs=script, usage=self.configManager.obter("commands.descriptions.{}.usage".format(script["command"])), description=self.configManager.obter("commands.descriptions.{}.text".format(script["command"])))
 
 	def isOwner(self, author):
 		return author.id in self.configManager.obter("commands.owners")
