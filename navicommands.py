@@ -311,6 +311,39 @@ async def cli_say(bot, h, client, message, args, flags):
 	except Exception as e:
 		bot.logManager.write(str(e), LogType.ERROR)
 
+async def cli_task(bot, h, client, message, args, flags):
+	if len(args) < 2 and not "show" in flags:
+		bot.logManager.write(h.getUsage(), logtype=LogType.DEBUG)
+
+	if "show" in flags:
+		for t in bot.obterTarefasAgendadas():
+			bot.logManager.write("['{}']: callback={}, name={}, staticArgs={}, canWait={}, isEnabled={}, interval={}, intervalSeconds={}, isRunning={}, isPersistent={}".format(
+				t.getCallback().__name__,
+				t.getName(),
+				t.getStaticArgs(),
+				t.getCanWait(),
+				t.getIsEnabled(),
+				t.getInterval(),
+				t.getIntervalInSeconds(),
+				t.getIsRunning(),
+				t.getIsPersistent()
+			), logtype=LogType.DEBUG)
+
+		return
+
+	task = bot.obterTarefaAgendada(args[1])
+
+	if task == None:
+		bot.logManager.write("Não foi possível encontrar a tarefa '{}'".format(args[1]), logtype=LogType.DEBUG)
+		return
+
+	if "enable" in flag:
+		await bot.agendarTarefa(task, {"loop": True})
+	else:
+		task.setIsEnabled(False)
+
+	await cli_task(bot, h, client, message, [], {"show": True})
+
 async def cli_quit(bot, h, client, message, args, flags):
 	bot.logManager.write("Desligando o cliente...", logtype=LogType.WARNING)
 	bot.logManager.setAtivado(False)

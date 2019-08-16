@@ -87,6 +87,9 @@
 				"say": {
 					"usage": "say <texto>"
 				},
+				"task": {
+					"usage": "task <nomeTarefa> [--enable] [--disable] [--show]"
+				},
 				"quit": {
 					"usage": "quit"
 				}
