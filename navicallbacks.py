@@ -48,6 +48,9 @@ async def callbackCommandHandler(navibot, client, rotinaOrigem, runtimeArgs):
 			asyncio.get_running_loop().create_task(navibot.interpretarComando(client, message, args, flags))
 
 async def callbackCliListener(navibot, client, rotinaOrigem, runtimeArgs):
+	if not navibot.cliEnabled:
+		return
+
 	if not "loop" in runtimeArgs.keys():
 		await navibot.agendarTarefa(NaviRoutine(navibot, callbackCliListener, every=navibot.configManager.obter("cli.update_delay"), unit="ms", isPersistent=True), {"loop": True})
 		return
@@ -60,9 +63,34 @@ async def callbackCliListener(navibot, client, rotinaOrigem, runtimeArgs):
 	# 
 	# Para entender o que está acontecendo:
 	# Enquanto STDIN estiver disponível para leitura (tem algo no buffer), leia a linha presente (normalmente os terminais só enviam a linha quando o usuário aperta ENTER)
-	while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
-		clilines.append(re.sub(r"\n", r"", sys.stdin.readline()))
+	# while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+	# 	clilines.append(re.sub(r"\n", r"", sys.stdin.readline()))
 
+	# for l in clilines:
+	# 	cliargs, cliflags = naviuteis.listarArgumentos(l)
+
+	# 	if len(cliargs) > 0:
+	# 		# @NOTE:
+	# 		# Usando await pois queremos que cada comando na CLI seja sequencial
+	# 		await navibot.interpretarComandoCli(client, cliargs, cliflags)
+
+	while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+		c = sys.stdin.read(1)
+
+		if c == '\n':
+			if len(navibot.cliBuffer) > 0:
+				clilines.append(navibot.cliBuffer)
+				navibot.logManager.desenharInput(True)
+				navibot.cliBuffer = ""
+		elif c == '\x7f':
+			if len(navibot.cliBuffer) > 0:
+				navibot.cliBuffer = navibot.cliBuffer[:-1]
+		else:
+			navibot.cliBuffer = navibot.cliBuffer + c
+			navibot.logManager.desenharInput()
+		
+		navibot.logManager.desenharInput()
+		
 	for l in clilines:
 		cliargs, cliflags = naviuteis.listarArgumentos(l)
 
@@ -70,6 +98,7 @@ async def callbackCliListener(navibot, client, rotinaOrigem, runtimeArgs):
 			# @NOTE:
 			# Usando await pois queremos que cada comando na CLI seja sequencial
 			await navibot.interpretarComandoCli(client, cliargs, cliflags)
+			# asyncio.get_running_loop().create_task(navibot.interpretarComandoCli(client, cliargs, cliflags))
 
 async def callbackRemind(navibot, client, rotinaOrigem, runtimeArgs):
 	message = runtimeArgs["message"]

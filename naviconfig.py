@@ -35,7 +35,7 @@ class ConfigManager:
 		try:
 			for i in chaves:
 				valorAtual = valorAtual[i]
-		except IndexError:
+		except KeyError:
 			self.__logManager.write("Não foi possível encontrar a chave de configurações (" + indice + ")", LogType.ERROR)
 			return None
 

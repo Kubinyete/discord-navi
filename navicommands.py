@@ -314,20 +314,11 @@ async def cli_say(bot, h, client, message, args, flags):
 async def cli_task(bot, h, client, message, args, flags):
 	if len(args) < 2 and not "show" in flags:
 		bot.logManager.write(h.getUsage(), logtype=LogType.DEBUG)
+		return
 
 	if "show" in flags:
 		for t in bot.obterTarefasAgendadas():
-			bot.logManager.write("['{}']: callback={}, name={}, staticArgs={}, canWait={}, isEnabled={}, interval={}, intervalSeconds={}, isRunning={}, isPersistent={}".format(
-				t.getCallback().__name__,
-				t.getName(),
-				t.getStaticArgs(),
-				t.getCanWait(),
-				t.getIsEnabled(),
-				t.getInterval(),
-				t.getIntervalInSeconds(),
-				t.getIsRunning(),
-				t.getIsPersistent()
-			), logtype=LogType.DEBUG)
+			bot.logManager.write("['{}']: callback={}, name={}, staticArgs={}, canWait={}, isEnabled={}, interval={}, intervalSeconds={}, isRunning={}, isPersistent={}".format(t.getName(), t.getCallback().__name__, t.getName(), t.getStaticArgs(), t.getCanWait(), t.getIsEnabled(), t.getInterval(), t.getIntervalInSeconds(), t.getIsRunning(), t.getIsPersistent()), logtype=LogType.DEBUG)
 
 		return
 

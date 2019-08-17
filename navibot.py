@@ -4,6 +4,9 @@ import aiohttp
 import enum
 import platform
 import time
+import sys
+import tty
+import termios
 from naviclient import NaviClient
 from naviclient import NaviEvent
 from naviclient import NaviRoutine
@@ -32,7 +35,7 @@ class NaviBot:
 			raise TypeError("'{}' não é uma str".fomat(configpath))
 
 		# Componentes
-		self.logManager = LogManager("debug.log")
+		self.logManager = LogManager("debug.log", self)
 		self.configManager = ConfigManager(configpath, self.logManager)
 		self.logManager.atualizarPath(self.configManager.obter("global.log_path"))
 
@@ -42,6 +45,28 @@ class NaviBot:
 		# Configurações de inicialização
 		self.botPrefix = self.configManager.obter("global.bot_prefix")
 		self.botPlayingIndex = 0
+
+		# @NOTE
+		# Só ativa o listener de CLI caso esteja no Linux
+		self.cliEnabled = platform.system() ==  "Linux"
+
+		if self.cliEnabled:
+			self.cliStdinSavedAttr = termios.tcgetattr(sys.stdin)
+			self.cliStdinCurrentAttr = termios.tcgetattr(sys.stdin)
+			
+			# Desativa o ECHO do console
+			self.cliStdinCurrentAttr[3] = self.cliStdinCurrentAttr[3] & ~termios.ECHO
+			
+			# Desativa o modo CANONICAL do console
+			self.cliStdinCurrentAttr[3] = self.cliStdinCurrentAttr[3] & ~termios.ICANON
+			
+			termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.cliStdinCurrentAttr)
+
+			self.cliBuffer = ""
+
+			self.logManager.setComportamentoCli(True)
+		else:
+			self.logManager.write("Rodando em um sistema não Linux, desativando CLI", logtype=LogType.WARNING)
 
 		self.cliSelectedChannel = None
 
@@ -57,14 +82,7 @@ class NaviBot:
 	def __acoplarEventos(self):
 		self.naviClient.addEventListener(NaviEvent.READY, NaviRoutine(self, navicallbacks.callbackLog, isPersistent=True))
 		self.naviClient.addEventListener(NaviEvent.READY, NaviRoutine(self, navicallbacks.callbackActivity, isPersistent=True))
-		
-		# @NOTE
-		# Só ativa o listener de CLI caso esteja no Linux
-		if platform.system() ==  "Linux":
-			self.naviClient.addEventListener(NaviEvent.READY, NaviRoutine(self, navicallbacks.callbackCliListener, isPersistent=True))
-		else:
-			self.logManager.write("Rodando em um sistema não Linux, desativando evento da CLI", logtype=LogType.WARNING)
-
+		self.naviClient.addEventListener(NaviEvent.READY, NaviRoutine(self, navicallbacks.callbackCliListener, isPersistent=True))
 		self.naviClient.addEventListener(NaviEvent.MESSAGE, NaviRoutine(self, navicallbacks.callbackLog, isPersistent=True))
 		self.naviClient.addEventListener(NaviEvent.MESSAGE, NaviRoutine(self, navicallbacks.callbackCommandHandler, isPersistent=True))
 
@@ -104,7 +122,7 @@ class NaviBot:
 	async def agendarTarefa(self, rotina, futureRuntimeArgs={}):
 		segundos = rotina.getIntervalInSeconds()
 		
-		if segundos < .100:
+		if segundos < .033:
 			raise Exception("Tempo mínimo atingido, 'segundos' = {}".format(segundos))
 		else:
 			# Ja existe essa tarefa
@@ -219,7 +237,18 @@ class NaviBot:
 	def rodar(self):
 		# @NOTE
 		# Congela a "thread" atual, deverá ser a ultima coisa a ser executada
-		self.naviClient.rodar(self.configManager.obter("global.bot_token"))
+		try:
+			self.naviClient.rodar(self.configManager.obter("global.bot_token"))
+		except KeyboardInterrupt:
+			try:
+				asyncio.wait_for(self.fechar(), timeout=10)
+			except asyncio.TimeoutError:
+				if self.cliEnabled:
+					termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.cliStdinSavedAttr)
+				raise SystemExit
+		finally:
+			if self.cliEnabled:
+				termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.cliStdinSavedAttr)
 
 	async def fechar(self):
 		await self.naviClient.fechar()

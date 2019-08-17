@@ -120,10 +120,17 @@ def traduzirCores(str):
 			sequence = False
 
 			corsequence = cor.split(".")
+			erro = False
 			for i in range(len(corsequence)):
-				corsequence[i] = ANSI_CODES[corsequence[i]]
+				if corsequence[i] in ANSI_CODES.keys():
+					corsequence[i] = ANSI_CODES[corsequence[i]]
+				else:
+					erro = True
 			
-			fstr = fstr + ANSI_ESCAPE.format(";".join(corsequence))
+			if not erro:
+				fstr = fstr + ANSI_ESCAPE.format(";".join(corsequence))
+			else:
+				fstr = fstr + "{" + cor + "}"
 
 			cor = ""
 		else:
