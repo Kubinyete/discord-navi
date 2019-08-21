@@ -85,9 +85,11 @@ async def callbackCliListener(navibot, client, rotinaOrigem, runtimeArgs):
 		elif c == '\x7f':
 			if len(navibot.cliBuffer) > 0:
 				navibot.cliBuffer = navibot.cliBuffer[:-1]
+		elif c.startswith('\x1b'):
+			# navibot.logManager.write("Pego um caractere SEQUENCIAL", LogType.DEBUG)
+			pass
 		else:
 			navibot.cliBuffer = navibot.cliBuffer + c
-			navibot.logManager.desenharInput()
 		
 		navibot.logManager.desenharInput()
 		
