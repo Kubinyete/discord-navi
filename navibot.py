@@ -60,7 +60,7 @@ class NaviBot:
 			# Desativa o modo CANONICAL do console
 			self.cliStdinCurrentAttr[3] = self.cliStdinCurrentAttr[3] & ~termios.ICANON
 			
-			termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.cliStdinCurrentAttr)
+			termios.tcsetattr(sys.stdin, termios.TCSANOW, self.cliStdinCurrentAttr)
 
 			self.cliBuffer = ""
 
@@ -244,11 +244,11 @@ class NaviBot:
 				asyncio.wait_for(self.fechar(), timeout=10)
 			except asyncio.TimeoutError:
 				if self.cliEnabled:
-					termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.cliStdinSavedAttr)
+					termios.tcsetattr(sys.stdin, termios.TCSANOW, self.cliStdinSavedAttr)
 				raise SystemExit
 		finally:
 			if self.cliEnabled:
-				termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.cliStdinSavedAttr)
+				termios.tcsetattr(sys.stdin, termios.TCSANOW, self.cliStdinSavedAttr)
 
 	async def fechar(self):
 		await self.naviClient.fechar()
