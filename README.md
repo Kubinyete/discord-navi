@@ -21,23 +21,16 @@ O arquivo de configuração é basicamente estruturado da seguinte forma:
 ```json
 {
 	"global": {
-		// Token necessária
 		"bot_token": "DISCORD_BOT_TOKEN",
-		// Prefixo de ativação dos comandos
 		"bot_prefix": ";;",
-		// Lista de status que podem ser alterados dinâmicamente a cada X segundos
 		"bot_playing": ["Status 1", "Status 2"],
-		// Especifica o quanto tempo um status permanece até ser alterado para o próximo
 		"bot_playing_delay": 60,
-		// Caminho padrão para salvar os logs
 		"log_path": "messages.log"
 	},
 	"commands": {
-		// Configura quais são os IDs que podem executar comandos restritos
 		"owners": []
 	},
 	"external": {
-		// Configurações de APIs externas, podem pedir chaves de autenticação ou outros parâmetros
 		"osu": {
 			"api_key": "OSU_API_KEY",
 			"api_domain": "osu.ppy.sh",
