@@ -28,7 +28,8 @@ O arquivo de configuração é basicamente estruturado da seguinte forma:
 		"log_path": "messages.log"
 	},
 	"commands": {
-		"owners": []
+		"owners": [],
+		"descriptions": {}
 	},
 	"external": {
 		"osu": {
@@ -54,7 +55,7 @@ Atualmente o bot requer que as bibliotecas:
 
 ### Command Line Interface
 
-O bot te, implantado atualmente somente no Linux (requer o modulo `select`, por isso a restrição de plataforma) uma CLI em tempo real, podemos interagir com o bot enquanto o mesmo está em execução. É utilizado mais para razões de DEBUG ou apenas por diversão, mais comandos serão adicionados eventualmente.
+O bot tem implantado atualmente somente no Linux (requer o modulo `select`, por isso a restrição de plataforma) uma CLI em tempo real, podemos interagir com o bot enquanto o mesmo está em execução. É utilizado mais para razões de DEBUG ou apenas por diversão, mais comandos serão adicionados eventualmente.
 
 ```
 [22/08/2019 10:52:28] Informação O bot foi iniciado com sucesso
@@ -73,16 +74,21 @@ O bot te, implantado atualmente somente no Linux (requer o modulo `select`, por 
 Os comandos podem ser encontrados em `navicommands.py`, cada comando é na verdade uma coroutine definida e nomeada com um prefixo de acordo com sua característica.
 
 * `command_`, define um comando normal.
-* `comamnd_owner_`, define um comando cujo apenas os "owners" definidos em `commands.owners` (presente no `config.json`) podem utilizar.
-* `cli_`, define um comando na CLI.
+* `command_owner_`, define um comando cujo apenas os "owners" definidos em `commands.owners` podem utilizar.
+* `cli_`, define um comando para CLI.
 
 Exemplo helloworld:
 
 ```py
+# navicommands.py
 import navibot
+import navilog
 
 async def command_helloworld(bot, handler, client, message, args, flags):
 	await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS, text="Olá mundo!")
+
+async def cli_helloworld(bot, handler, client, message, args, flags):
+	bot.logManager.write("Olá mundo!", logtype=navilog.LogType.DEBUG)
 ```
 
 Cada comando presente em `navicommands.py` já será reconhecido automaticamente pelo bot, através de seu método de inicialização, portanto, você só precisará prestar atenção nas mensagens de descrição e uso presentes no `config.json`, exemplo:
@@ -97,11 +103,20 @@ Cada comando presente em `navicommands.py` já será reconhecido automaticamente
 				"usage": "helloworld"
 			}
 		}
+	},
+	"cli": {
+		"commands": {
+			"descriptions": {
+				"helloworld": {
+					"usage": "helloworld"
+				}
+			}
+		}
 	}
 }
 ``` 
 
-Já para manipulação dos comandos, os parâmetros `args` e `flags` são extremamente importantes, o bot já fará o processamento na mensagem do usuário e trará os argumentos separados na lista, exemplo:
+Já para manipulação dos comandos, os parâmetros `args` e `flags` são extremamente importantes, o bot já faz o processamento na mensagem do usuário e traz os argumentos separados na lista, exemplo:
 
 O comando:
 
@@ -113,7 +128,7 @@ Resultará em:
 args = ["argtester", "ola", "mundo"]
 ```
 
-Já às flags, são parâmetros cujo iniciam com - (representam uma sinal ligado) ou -- (representam uma chave=valor), exemplo:
+Já as flags, são parâmetros cujo iniciam com - (representam uma sinal ligado) ou -- (representam uma chave=valor), exemplo:
 
 O comando:
 
