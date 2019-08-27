@@ -44,7 +44,8 @@ class NaviClient(discord.Client):
 		self.run(token)
 
 	async def fechar(self):
-		await self.close()
+		# Vai deslogar sem desativar o loop de execução, fazendo com que rodar() pare
+		await self.logout()
 
 class NaviEvent(enum.Enum):
 	# on_ready

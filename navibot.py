@@ -34,13 +34,14 @@ class NaviBot:
 		if type(configpath) != str:
 			raise TypeError("'{}' não é uma str".fomat(configpath))
 
-		# Componentes
+		# Componentes padrão
 		self.logManager = LogManager("debug.log", self)
 		self.configManager = ConfigManager(configpath, self.logManager)
 		self.logManager.atualizarPath(self.configManager.obter("global.log_path"))
 
-		self.naviClient = NaviClient()
-		self.httpClientSession = aiohttp.ClientSession()
+		# Componentes e flags do Loop de execução
+		self.naviClient = None
+		self.httpClientSession = None
 
 		# Configurações de inicialização
 		self.botPrefix = self.configManager.obter("global.bot_prefix")
@@ -49,35 +50,13 @@ class NaviBot:
 		# @NOTE
 		# Só ativa o listener de CLI caso esteja no Linux
 		self.cliEnabled = platform.system() ==  "Linux"
-
-		if self.cliEnabled:
-			self.cliStdinSavedAttr = termios.tcgetattr(sys.stdin)
-			self.cliStdinCurrentAttr = termios.tcgetattr(sys.stdin)
-			
-			# Desativa o ECHO do console
-			self.cliStdinCurrentAttr[3] = self.cliStdinCurrentAttr[3] & ~termios.ECHO
-			
-			# Desativa o modo CANONICAL do console
-			self.cliStdinCurrentAttr[3] = self.cliStdinCurrentAttr[3] & ~termios.ICANON
-			
-			termios.tcsetattr(sys.stdin, termios.TCSANOW, self.cliStdinCurrentAttr)
-
-			self.cliBuffer = ""
-
-			self.logManager.setComportamentoCli(True)
-		else:
-			self.logManager.write("Rodando em um sistema não Linux, desativando CLI", logtype=LogType.WARNING)
-
+		self.cliBuffer = ""
 		self.cliSelectedChannel = None
 
+		# Containers
 		self.__commandHandlers = {}
 		self.__cliHandlers = {}
 		self.__tarefasAgendadas = {}
-		
-		# Pede para o cliente registrar os callbacks de cada evento
-		self.__acoplarEventos()
-		# Prepara quais comandos estão disponíveis e seus callback para a callback principal de comandos callbackCommandHandler() e callbackCliListener()
-		self.__inicializarComandos()
 
 	def __acoplarEventos(self):
 		self.naviClient.addEventListener(NaviEvent.READY, NaviRoutine(self, navicallbacks.callbackLog, isPersistent=True))
@@ -123,14 +102,15 @@ class NaviBot:
 		segundos = rotina.getIntervalInSeconds()
 		
 		if segundos < .033:
-			raise Exception("Tempo mínimo atingido, 'segundos' = {}".format(segundos))
+			self.logManager.write("A tarefa '{}' não pode ser inserida pois especifica um tempo de intervalo abaixo do mínimo permitido".format(rotina), logtype=LogType.ERROR)
 		else:
 			# Ja existe essa tarefa
 			if rotina.getName() in self.__tarefasAgendadas.keys():
 				# Escrever novamente a logica desta parte, pois queremos que aconteça o seguinte:
 				# Caso já exista a tarefa, verifique se ela está rodanndo, caso não, substitua, se não, jogue uma Exception
 				if rotina != self.__tarefasAgendadas[rotina.getName()] and self.__tarefasAgendadas[rotina.getName()].getIsRunning():
-						raise Exception("A tarefa '{}' a ser inserida não pode substituir a atual '{}' pos ainda está em execução".format(rotina, self.__tarefasAgendadas[rotina.getName()]))
+						# raise Exception("A tarefa '{}' a ser inserida não pode substituir a atual '{}' pos ainda está em execução".format(rotina, self.__tarefasAgendadas[rotina.getName()]))
+						self.logManager.write("A tarefa '{}' a ser inserida não pode substituir a atual '{}' pos ainda está em execução".format(rotina, self.__tarefasAgendadas[rotina.getName()]), logtype=LogType.ERROR)
 				else:
 					rotina.setIsEnabled(True)
 
@@ -216,7 +196,7 @@ class NaviBot:
 		
 	# @NOTE
 	# Para facilitar o uso do Bot e de manutenção de seus comandos, resolvi fazer um inicializador que já verifica quais métodos são comandos executáveis.
-	def __inicializarComandos(self):
+	def __inicializarComandos(self, navicommands):
 		# Nativos
 		for k in navicommands.__dict__:
 			if asyncio.iscoroutinefunction(navicommands.__dict__[k]):
@@ -237,20 +217,45 @@ class NaviBot:
 	def rodar(self):
 		# @NOTE
 		# Congela a "thread" atual, deverá ser a ultima coisa a ser executada
+
+		# @NOTE
+		# naviClient(discord.Client) é quem vai gerenciar o loop do asyncio, não vamos mexer com isso por enquanto.
+		self.naviClient = NaviClient()
+		self.httpClientSession = aiohttp.ClientSession()
+
+		# Pede para o cliente registrar os callbacks de cada evento
+		self.__acoplarEventos()
+
+		# Prepara quais comandos estão disponíveis e seus callback para a callback principal de comandos callbackCommandHandler() e callbackCliListener()
+		self.__inicializarComandos(navicommands)
+
+		# CLI está ativada?
+		if self.cliEnabled:
+			self.cliStdinSavedAttr = termios.tcgetattr(sys.stdin)
+			self.cliStdinCurrentAttr = termios.tcgetattr(sys.stdin)
+			
+			# Desativa o ECHO do console
+			self.cliStdinCurrentAttr[3] = self.cliStdinCurrentAttr[3] & ~termios.ECHO
+			
+			# Desativa o modo CANONICAL do console
+			self.cliStdinCurrentAttr[3] = self.cliStdinCurrentAttr[3] & ~termios.ICANON
+			
+			# Aplica as modificações
+			termios.tcsetattr(sys.stdin, termios.TCSANOW, self.cliStdinCurrentAttr)
+
+			# Ativa o modo de Input no LogManager
+			self.logManager.setComportamentoCli(True)
+
 		try:
 			self.naviClient.rodar(self.configManager.obter("global.bot_token"))
-		except KeyboardInterrupt:
-			try:
-				asyncio.wait_for(self.fechar(), timeout=10)
-			except asyncio.TimeoutError:
-				if self.cliEnabled:
-					termios.tcsetattr(sys.stdin, termios.TCSANOW, self.cliStdinSavedAttr)
-				raise SystemExit
+		except Exception as e:
+			self.logManager.write("{{bold.red}}{}{{reset}} > {{bold.yellow}}{}{{reset}}".format(type(e), e))
 		finally:
 			if self.cliEnabled:
 				termios.tcsetattr(sys.stdin, termios.TCSANOW, self.cliStdinSavedAttr)
 
 	async def fechar(self):
+		# Pede para o cliente deslogar, fazendo com que a thread principal em NaviBot.rodar() volte do bloqueio
 		await self.naviClient.fechar()
 
 	# @SECTION

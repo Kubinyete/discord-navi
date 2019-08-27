@@ -95,7 +95,7 @@ async def command_remind(bot, h, client, message, args, flags):
 		await bot.sendFeedback(message, navibot.NaviFeedback.ERROR, exception=e)
 		return
 
-	if every == None or unit == None:
+	if every == None or unit == None or every == 0:
 		await bot.sendFeedback(message, navibot.NaviFeedback.WARNING, text="O argumento '--time' não está em um formato valido")
 		return
 
@@ -328,7 +328,7 @@ async def cli_task(bot, h, client, message, args, flags):
 		bot.logManager.write("Não foi possível encontrar a tarefa '{}'".format(args[1]), logtype=LogType.DEBUG)
 		return
 
-	if "enable" in flag:
+	if "enable" in flags:
 		await bot.agendarTarefa(task, {"loop": True})
 	else:
 		task.setIsEnabled(False)
