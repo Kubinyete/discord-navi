@@ -103,11 +103,13 @@ async def callbackCliListener(navibot, client, rotinaOrigem, runtimeArgs):
 			# asyncio.get_running_loop().create_task(navibot.interpretarComandoCli(client, cliargs, cliflags))
 
 async def callbackRemind(navibot, client, rotinaOrigem, runtimeArgs):
-	message = runtimeArgs["message"]
+	stargs = rotinaOrigem.getStaticArgs()
+
+	message = stargs["message"]
 
 	rotinaOrigem.setIsEnabled(False)
 
-	if "remind_text" in runtimeArgs:
-		await message.author.send("<@{}> Estou lembrando para você de **{}**".format(message.author.id, runtimeArgs["remind_text"]))
+	if "remind_text" in stargs:
+		await message.author.send("<@{}> Estou lembrando para você de **{}**".format(message.author.id, stargs["remind_text"]))
 	else:
 		await message.author.send("<@{}> Estou te lembrando de algo!".format(message.author.id))

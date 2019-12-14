@@ -4,6 +4,8 @@ import subprocess
 import re
 import navicallbacks
 import navibot
+from datetime import datetime
+from datetime import timedelta
 from navilog import LogType
 from naviclient import NaviRoutine
 
@@ -80,8 +82,19 @@ async def command_help(bot, h, client, message, args, flags):
 	await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS, text=helptext)
 
 async def command_remind(bot, h, client, message, args, flags):
-	if len(args) < 2 or not "time" in flags:
+	if len(args) < 2 and not "list" in flags or not "list" in flags and not "time" in flags:
 		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text=h.getUsage())
+		return
+
+	if "list" in flags:
+		tarefa_str = "{}_{}".format(str(message.author.id), navicallbacks.callbackRemind.__name__)
+		tarefa = bot.obterTarefaAgendada(tarefa_str)
+
+		if tarefa:
+			await bot.sendFeedback(message, navibot.NaviFeedback.INFO, text="'**{}**', solicitado em ***{}*** para expirar em ***{}***".format(tarefa.getStaticArgs()['remind_text'], tarefa.getStaticArgs()['remind_date'].strftime("%d/%m/%Y às %H:%M:%S"), (tarefa.getStaticArgs()['remind_date'] + timedelta(seconds=tarefa.getIntervalInSeconds())).strftime("%d/%m/%Y às %H:%M:%S")))
+		else:
+			await bot.sendFeedback(message, navibot.NaviFeedback.INFO, text="Você não registrou nenhum remind até o momento")
+
 		return
 
 	try:
@@ -103,8 +116,8 @@ async def command_remind(bot, h, client, message, args, flags):
 	tarefa = bot.obterTarefaAgendada(tarefa_str)
 
 	if tarefa == None:
-		tarefa = NaviRoutine(bot, navicallbacks.callbackRemind, name=tarefa_str, every=every, unit=unit, canWait=True)
-		await bot.agendarTarefa(tarefa, {"remind_text": " ".join(args[1:]), "message": message})
+		tarefa = NaviRoutine(bot, navicallbacks.callbackRemind, name=tarefa_str, every=every, unit=unit, canWait=True, staticArgs={"remind_text": " ".join(args[1:]), "remind_date": datetime.now(), "message": message})
+		await bot.agendarTarefa(tarefa)
 		await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS)
 	else:
 		await bot.sendFeedback(message, navibot.NaviFeedback.WARNING, text="Recentemente já foi solicitado um 'remind', tente novamente mais tarde")
@@ -180,12 +193,12 @@ async def command_osu(bot, h, client, message, args, flags):
 	description = """
 **#{rank}** (:flag_{country}: **#{countryrank}**)
 
-**Join date:**	{joindate}
+**Join date:** {joindate}
 **Playtime:** {playtime:.2f} day(s)
-**Playcount:**	{playcount}
-**PP:**	{ppraw}
-**Accuracy:**	{accuracy:.2f}
-**Level:**	{level:.2f}
+**Playcount:** {playcount}
+**PP:** {ppraw}
+**Accuracy:** {accuracy:.2f}
+**Level:** {level:.2f}
 
 *View on* [osu.ppy.sh]({link})
 """.format(rank=json["pp_rank"], country=json["country"].lower(), countryrank=json["pp_country_rank"], joindate=json["join_date"], playtime=int(json["total_seconds_played"]) / 86400, playcount=json["playcount"], ppraw=json["pp_raw"], accuracy=float(json["accuracy"]), level=float(json["level"]), link="https://" + bot.configManager.obter("external.osu.api_domain") + "/u/" + json["user_id"])
@@ -233,27 +246,6 @@ async def command_owner_setgame(bot, h, client, message, args, flags):
 		except Exception:
 			await bot.sendFeedback(message, navibot.NaviFeedback.ERROR)
 
-async def command_owner_send(bot, h, client, message, args, flags):
-	if len(args) < 3:
-		await bot.sendFeedback(message, navibot.NaviFeedback.COMMAND_INFO, text=h.getUsage())
-		return
-	
-	c = None
-
-	if not "user" in flags:
-		c = client.get_channel(int(args[1]))
-	else:
-		c = client.get_user(int(args[1]))
-
-	if c != None:
-		try:
-			await c.send(" ".join(args[2:]))
-			await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS)
-		except Exception as e:
-			await bot.sendFeedback(message, navibot.NaviFeedback.ERROR, exception=e)
-	else:
-		await bot.sendFeedback(message, navibot.NaviFeedback.WARNING, text="O cliente não conseguiu obter o canal/usuário (não tem acesso)")
-
 # @SECTION
 # Comandos disponibilizados para a CLI oferecida pelo bot
 
@@ -264,21 +256,35 @@ async def cli_help(bot, h, client, message, args, flags):
 async def cli_echo(bot, h, client, message, args, flags):
 	bot.logManager.write(" ".join(args[1:]), logtype=LogType.DEBUG)
 
-async def cli_select(bot, h, client, message, args, flags):
-	if len(args) < 2 and not "show" in flags:
+# @REWRITE: Atualizar a forma de interagir com chats de diferentes servidores via CLI, atualmente não está muito prático
+async def cli_context(bot, h, client, message, args, flags):
+	if len(args) < 2 and (not "show" in flags and not "clear" in flags):
 		bot.logManager.write(h.getUsage(), logtype=LogType.DEBUG)
 		return
 
 	if "show" in flags:
-		if bot.cliSelectedChannel == None:
-			bot.logManager.write("Nenhum canal/usuário está selecionado", logtype=LogType.DEBUG)
-		elif type(bot.cliSelectedChannel) == discord.User:
-			bot.logManager.write("O usuário selecionado é: {} ({})".format(bot.cliSelectedChannel.name, bot.cliSelectedChannel.id), logtype=LogType.DEBUG)
-		elif type(bot.cliSelectedChannel) == discord.TextChannel:
-			bot.logManager.write("O canal selecionado é: {}#{} ({})".format(bot.cliSelectedChannel.guild.name, bot.cliSelectedChannel.name, bot.cliSelectedChannel.id), logtype=LogType.DEBUG)
-		else:
-			bot.logManager.write("O canal selecionado é: {}".format(str(bot.cliSelectedChannel)), logtype=LogType.DEBUG)
+		if bot.cliContext == None:
+			bot.logManager.write("Nenhum contexto está selecionado", logtype=LogType.DEBUG)
 
+			for g in client.guilds:
+				bot.logManager.write("{} ({})".format(g.name, g.id), logtype=LogType.DEBUG)
+
+		elif type(bot.cliContext) == discord.User:
+			bot.logManager.write("O usuário selecionado é: {} ({})".format(bot.cliContext.name, bot.cliContext.id), logtype=LogType.DEBUG)
+		elif type(bot.cliContext) == discord.TextChannel:
+			bot.logManager.write("O canal selecionado é: {}#{} ({})".format(bot.cliContext.guild.name, bot.cliContext.name, bot.cliContext.id), logtype=LogType.DEBUG)
+		elif type(bot.cliContext) == discord.Guild:
+			bot.logManager.write("A guild selecionada é: {} ({})".format(bot.cliContext.name, bot.cliContext.id), logtype=LogType.DEBUG)
+
+			for g in bot.cliContext.channels:
+				if type(g) == discord.TextChannel:
+					bot.logManager.write("#{} ({})".format(g.name, g.id), logtype=LogType.DEBUG)
+		else:
+			bot.logManager.write("O contexto selecionado é: {}".format(str(bot.cliContext)), logtype=LogType.DEBUG)
+
+		return
+	elif "clear" in flags:
+		bot.cliContext = None
 		return
 
 	try:
@@ -287,36 +293,39 @@ async def cli_select(bot, h, client, message, args, flags):
 		bot.logManager.write("O id informado não é um número", logtype=LogType.DEBUG)
 		return
 
-	if "user" in flags:
-		bot.cliSelectedChannel = client.get_user(cid)
+	if "u" in flags:
+		bot.cliContext = client.get_user(cid)
+	elif "c" in flags:
+		bot.cliContext = client.get_channel(cid)
+	elif "g" in flags:
+		bot.cliContext = client.get_guild(cid)
 	else:
-		bot.cliSelectedChannel = client.get_channel(cid)
+		bot.logManager.write(h.getUsage(), logtype=LogType.DEBUG)
+		return
 
-	if bot.cliSelectedChannel == None or (type(bot.cliSelectedChannel) != discord.TextChannel and type(bot.cliSelectedChannel) != discord.User):
-		bot.logManager.write("O id informado não é um canal/usuário válido", logtype=LogType.DEBUG)
-	else:
-		await cli_select(bot, h, client, message, [], {"show": True})
+	await cli_context(bot, h, client, message, [], {"show": True})
 
+# @REWRITE: Atualizar a forma de interagir com chats de diferentes servidores via CLI, atualmente não está muito prático
 async def cli_say(bot, h, client, message, args, flags):
 	if len(args) < 2:
 		bot.logManager.write(h.getUsage(), logtype=LogType.DEBUG)
 		return
 
-	if bot.cliSelectedChannel == None:
-		bot.logManager.write("Nenhum canal foi selecionado para enviar a mensagem, selecione utilizando o comando 'select'", logtype=LogType.DEBUG)
+	if type(bot.cliContext) != discord.TextChannel:
+		bot.logManager.write("Nenhum canal foi selecionado para enviar a mensagem, selecione utilizando o comando 'context'", logtype=LogType.DEBUG)
 		return
 
 	try:
-		await bot.cliSelectedChannel.send(" ".join(args[1:]))
+		await bot.cliContext.send(" ".join(args[1:]))
 	except Exception as e:
 		bot.logManager.write(str(e), LogType.ERROR)
 
 async def cli_task(bot, h, client, message, args, flags):
-	if len(args) < 2 and not "show" in flags:
+	if len(args) < 2 and not "list" in flags:
 		bot.logManager.write(h.getUsage(), logtype=LogType.DEBUG)
 		return
 
-	if "show" in flags:
+	if "list" in flags:
 		for t in bot.obterTarefasAgendadas():
 			bot.logManager.write("['{}']: callback={}, name={}, staticArgs={}, canWait={}, isEnabled={}, interval={}, intervalSeconds={}, isRunning={}, isPersistent={}".format(t.getName(), t.getCallback().__name__, t.getName(), t.getStaticArgs(), t.getCanWait(), t.getIsEnabled(), t.getInterval(), t.getIntervalInSeconds(), t.getIsRunning(), t.getIsPersistent()), logtype=LogType.DEBUG)
 
@@ -333,7 +342,7 @@ async def cli_task(bot, h, client, message, args, flags):
 	else:
 		task.setIsEnabled(False)
 
-	await cli_task(bot, h, client, message, [], {"show": True})
+	await cli_task(bot, h, client, message, [], {"list": True})
 
 async def cli_quit(bot, h, client, message, args, flags):
 	bot.logManager.write("Desligando o cliente...", logtype=LogType.WARNING)
@@ -341,3 +350,7 @@ async def cli_quit(bot, h, client, message, args, flags):
 	bot.logManager.fechar()
 	await bot.httpClientSession.close()
 	await bot.fechar()
+
+async def cli_reload(bot, h, client, message, args, flags):
+	bot.logManager.write("Recarregando modulos...", logtype=LogType.WARNING)
+	bot.recarregar()

@@ -7,6 +7,7 @@ import time
 import sys
 import tty
 import termios
+import importlib
 from naviclient import NaviClient
 from naviclient import NaviEvent
 from naviclient import NaviRoutine
@@ -51,7 +52,7 @@ class NaviBot:
 		# Só ativa o listener de CLI caso esteja no Linux
 		self.cliEnabled = platform.system() ==  "Linux"
 		self.cliBuffer = ""
-		self.cliSelectedChannel = None
+		self.cliContext = None
 
 		# Containers
 		self.__commandHandlers = {}
@@ -64,6 +65,13 @@ class NaviBot:
 		self.naviClient.addEventListener(NaviEvent.READY, NaviRoutine(self, navicallbacks.callbackCliListener, isPersistent=True))
 		self.naviClient.addEventListener(NaviEvent.MESSAGE, NaviRoutine(self, navicallbacks.callbackLog, isPersistent=True))
 		self.naviClient.addEventListener(NaviEvent.MESSAGE, NaviRoutine(self, navicallbacks.callbackCommandHandler, isPersistent=True))
+
+	def __desacoplarTodosEventos(self):
+		self.naviClient.removeAllEventListener()
+
+	def __removerTodosHandlers(self):
+		self.__commandHandlers = {}
+		self.__cliHandlers = {}
 
 	async def fetchJson(self, url, params):
 		async with self.httpClientSession.get(url, params=params) as resposta:
@@ -196,7 +204,7 @@ class NaviBot:
 		
 	# @NOTE
 	# Para facilitar o uso do Bot e de manutenção de seus comandos, resolvi fazer um inicializador que já verifica quais métodos são comandos executáveis.
-	def __inicializarComandos(self, navicommands):
+	def __inicializarComandos(self):
 		# Nativos
 		for k in navicommands.__dict__:
 			if asyncio.iscoroutinefunction(navicommands.__dict__[k]):
@@ -210,6 +218,17 @@ class NaviBot:
 		# Externos
 		for script in self.configManager.obter("commands.scripts"):
 			self.__commandHandlers[script["command"]] = NaviCommand(self, navicommands.__dict__["generic_runshell"], name=script["command"], ownerOnly=script["owner_only"], isEnabled=script["enabled"], staticArgs=script, usage=self.configManager.obter("commands.descriptions.{}.usage".format(script["command"])), description=self.configManager.obter("commands.descriptions.{}.text".format(script["command"])))
+
+	def recarregar(self):
+		importlib.reload(navicommands)
+		importlib.reload(navicallbacks)
+
+		self.__desacoplarTodosEventos()
+		self.__removerTodosHandlers()
+
+		self.configManager.recarregarConfig()
+		self.__acoplarEventos()
+		self.__inicializarComandos()
 
 	def isOwner(self, author):
 		return author.id in self.configManager.obter("commands.owners")
@@ -227,7 +246,7 @@ class NaviBot:
 		self.__acoplarEventos()
 
 		# Prepara quais comandos estão disponíveis e seus callback para a callback principal de comandos callbackCommandHandler() e callbackCliListener()
-		self.__inicializarComandos(navicommands)
+		self.__inicializarComandos()
 
 		# CLI está ativada?
 		if self.cliEnabled:

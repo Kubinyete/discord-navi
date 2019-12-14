@@ -14,7 +14,12 @@ class ConfigManager:
 			raise TypeError("'{}' não é uma str".format(configpath))
 
 		self.__configPath = configpath
-		
+	
+	def recarregarConfig(self):
+		self.__configValues = {}
+
+		self.carregarConfig()
+
 	def carregarConfig(self):
 		try:
 			with open(self.__configPath, "r", encoding="utf-8") as f:

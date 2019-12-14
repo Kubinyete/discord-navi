@@ -1,9 +1,9 @@
 {
 	"global": {
-		"bot_token": "DISCORD_BOT_TOKEN",
+		"bot_token": "BOT_TOKEN",
 		"bot_prefix": ";;",
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
-		"bot_playing_delay": 60,
+		"bot_playing_delay": 120,
 		"log_path": "messages.log"
 	},
 	"commands": {
@@ -29,10 +29,6 @@
 			}
 		],
 		"descriptions": {
-			"send": {
-				"text": "Apenas para usuários especificados, envia uma mensagem para o canal especificado .",
-				"usage": "send <channelid> <texto> [--user]"
-			},
 			"setgame": {
 				"text": "Apenas para usuários especificados, atualiza o status de jogo do bot.",
 				"usage": "setgame <texto> [--clear]"
@@ -55,7 +51,7 @@
 			},
 			"remind": {
 				"text": "Registra um lembrete após o tempo especificado, envia o lembrete através de um canal privado, o parâmetro '--time' deverá ser informado juntamente com um número e unidade de tempo (Ex: --time=10s) onde: s=segundos, m=minutos e h=horas.",
-				"usage": "remind <texto> [--time=[0-9]+(s|m|h)]"
+				"usage": "remind [--list] <texto> [--time=[0-9]+(s|m|h)]"
 			},
 			"osu": {
 				"text": "Retorna um perfil osu! de determinado usuário, o modo de jogo padrão é 'standard'",
@@ -81,14 +77,17 @@
 				"echo": {
 					"usage": "echo <texto>"
 				},
-				"select": {
-					"usage": "select <channelid> [--user] [--show]"
+				"context": {
+					"usage": "context [--show] [--clear] <id> [-u] [-g] [-c]"
 				},
 				"say": {
 					"usage": "say <texto>"
 				},
 				"task": {
-					"usage": "task <nomeTarefa> [--enable] [--disable] [--show]"
+					"usage": "task <nomeTarefa> [--enable] [--disable] [--list]"
+				},
+				"reload": {
+					"usage": "reload"
 				},
 				"quit": {
 					"usage": "quit"
@@ -98,7 +97,7 @@
 	},
 	"external": {
 		"osu": {
-			"api_key": "OSU_API_KEY",
+			"api_key": "API_KEY",
 			"api_domain": "osu.ppy.sh",
 			"api_assets": "a.ppy.sh",
 			"api_getuser": "/api/get_user"

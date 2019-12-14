@@ -40,6 +40,10 @@ class NaviClient(discord.Client):
 		elif evento == NaviEvent.MESSAGE:
 			self.__eventosMessage.append(rotina)
 
+	def removeAllEventListener(self):
+		self.__eventosReady = []
+		self.__eventosMessage = []
+
 	def rodar(self, token):
 		self.run(token)
 

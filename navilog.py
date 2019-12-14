@@ -31,7 +31,7 @@ class LogManager:
 	EXPR_LOG = "[{}] <{}> {}"
 	EXPR_TEXTCHANNEL = "{{yellow}}{guild}{{reset}} #{{red}}{channel}{{reset}} ({channelid}) {{bold}}{user}{{reset}} : "
 	EXPR_DMCHANNEL = "{{magenta}}{user}{{reset}} ({userid}) : "
-	EXPR_CLIINPUT = "-> "
+	EXPR_CLIINPUT = "{context} $ "
 	
 	def __init__(self, logpath, bot, cliBehavior=False):
 		self.__file = None
@@ -40,6 +40,18 @@ class LogManager:
 		self.__bot = bot
 		self.setAtivado(True)
 		self.atualizarPath(logpath)
+
+	def obterContexto(self):
+		bot = self.__bot
+
+		if type(bot.cliContext) == discord.User:
+			return "@{}".format(bot.cliContext.name)
+		elif type(bot.cliContext) == discord.TextChannel:
+			return "#{}".format(bot.cliContext.name)
+		elif type(bot.cliContext) == discord.Guild:
+			return "[{}]".format(bot.cliContext.name)
+		else:
+			return ""
 
 	def atualizarPath(self, logpath):
 		if type(logpath) != str:
@@ -82,9 +94,9 @@ class LogManager:
 	def desenharInput(self, keepInputRegistered=False):
 		if len(self.__bot.cliBuffer) < self.__cliCharsOnScreen:
 			# Resetou com Enter ou Backspace
-			sys.stdout.write("\033[1G")				# Vai para o inicio da linha
-			sys.stdout.write("\033[0K")				# Limpa a linha atual (pode conter um Input anterior)
-			sys.stdout.write(self.EXPR_CLIINPUT)	# Imprime o Input do usuário
+			sys.stdout.write("\033[1G")													# Vai para o inicio da linha
+			sys.stdout.write("\033[0K")													# Limpa a linha atual (pode conter um Input anterior)
+			sys.stdout.write(self.EXPR_CLIINPUT.format(context=self.obterContexto()))	# Imprime o Input do usuário
 			
 			# Solicita para a função abaixo desenhar tudo que esteja disponível
 			self.__cliCharsOnScreen = 0
@@ -114,10 +126,10 @@ class LogManager:
 			raise TypeError("Tipo de 'msg' desconhecido")
 
 		if self.__cliBehavior:
-			sys.stdout.write("\033[1G")				# Vai para o inicio da linha
-			sys.stdout.write("\033[0K")				# Limpa a linha atual (pode conter um Input anterior)
-			sys.stdout.write(msgBuffer + "\n")		# Imprime o conteudo do Log
-			sys.stdout.write(self.EXPR_CLIINPUT)	# Imprime o Input do usuário
+			sys.stdout.write("\033[1G")													# Vai para o inicio da linha
+			sys.stdout.write("\033[0K")													# Limpa a linha atual (pode conter um Input anterior)
+			sys.stdout.write(msgBuffer + "\n")											# Imprime o conteudo do Log
+			sys.stdout.write(self.EXPR_CLIINPUT.format(context=self.obterContexto()))	# Imprime o Input do usuário
 			self.__cliCharsOnScreen = 0
 			self.desenharInput()
 			sys.stdout.flush()
