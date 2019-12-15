@@ -31,7 +31,7 @@ class NaviFeedback(enum.Enum):
 	COMMAND_INFO = 4
 
 class NaviBot:
-	def __init__(self, configpath):
+	def __init__(self, configpath, cli=False):
 		if type(configpath) != str:
 			raise TypeError("'{}' não é uma str".fomat(configpath))
 
@@ -50,7 +50,7 @@ class NaviBot:
 
 		# @NOTE
 		# Só ativa o listener de CLI caso esteja no Linux
-		self.cliEnabled = platform.system() ==  "Linux"
+		self.cliEnabled = cli and platform.system() ==  "Linux"
 		self.cliBuffer = ""
 		self.cliContext = None
 
@@ -227,6 +227,7 @@ class NaviBot:
 		self.__removerTodosHandlers()
 
 		self.configManager.recarregarConfig()
+		
 		self.__acoplarEventos()
 		self.__inicializarComandos()
 

@@ -311,7 +311,7 @@ async def cli_say(bot, h, client, message, args, flags):
 		bot.logManager.write(h.getUsage(), logtype=LogType.DEBUG)
 		return
 
-	if type(bot.cliContext) != discord.TextChannel:
+	if type(bot.cliContext) != discord.TextChannel and type(bot.cliContext) != discord.User:
 		bot.logManager.write("Nenhum canal foi selecionado para enviar a mensagem, selecione utilizando o comando 'context'", logtype=LogType.DEBUG)
 		return
 

@@ -38,7 +38,6 @@ class LogManager:
 		self.__cliBehavior = cliBehavior
 		self.__cliCharsOnScreen = 0
 		self.__bot = bot
-		self.setAtivado(True)
 		self.atualizarPath(logpath)
 
 	def obterContexto(self):
@@ -59,6 +58,7 @@ class LogManager:
 			
 		self.__path = logpath
 		self.__erro = False
+		self.setAtivado(len(logpath) > 0)
 
 	def setAtivado(self, state):
 		if type(state) != bool:
