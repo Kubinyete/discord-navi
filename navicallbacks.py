@@ -45,7 +45,7 @@ async def callbackCommandHandler(navibot, client, rotinaOrigem, runtimeArgs):
 		args, flags = naviuteis.listarArgumentos(message.content[len(navibot.botPrefix):])
 
 		if len(args) > 0:
-			asyncio.get_running_loop().create_task(navibot.interpretarComando(client, message, args, flags))
+			await navibot.criarTarefaAsync(navibot.interpretarComando(client, message, args, flags))
 
 async def callbackCliListener(navibot, client, rotinaOrigem, runtimeArgs):
 	if not navibot.cliEnabled:

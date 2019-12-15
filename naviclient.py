@@ -137,18 +137,23 @@ class NaviRoutine(NaviCallback):
 				raise TypeError("O formato de 'every' ({})  e 'unit' ({}) está incorreto".format(every, unit))
 
 	def getIntervalInSeconds(self):
+		return NaviRoutine.intervalToSeconds(self.__every, self.__unit)
+
+	@staticmethod
+	def intervalToSeconds(every, unit):
 		segundos = 0
 
-		if self.__unit == "s":
-			segundos = self.__every
-		elif self.__unit == "m":
-			segundos = self.__every * 60
-		elif self.__unit == "h":
-			segundos = self.__every * pow(60, 2)
-		elif self.__unit == "ms":
-			segundos = self.__every / 1000
+		if unit == "s":
+			segundos = every
+		elif unit == "m":
+			segundos = every * 60
+		elif unit == "h":
+			segundos = every * pow(60, 2)
+		elif unit == "ms":
+			segundos = every / 1000
 
 		return segundos
+
 
 	def getInterval(self):
 		return (self.__every, self.__unit)
@@ -180,10 +185,12 @@ class NaviRoutine(NaviCallback):
 			# Como na inicialização do NaviBot nós referenciamos os callback através do self, ele já está embutido na hora de chamar o callback
 			# @TODO
 			# Desacoplar esses callbacks da instancia do self e apenas receberem e comunicarem pelo bot enviado por argumento
-			if self.getCanWait():
-				await self.getCallback()(self.getNaviBot(), client, self, runtimeArgs)
-			else:
-				asyncio.get_running_loop().create_task(self.getCallback()(self.getNaviBot(), client, self, runtimeArgs))
+			# if self.getCanWait():
+			# 	await self.getCallback()(self.getNaviBot(), client, self, runtimeArgs)
+			# else:
+			# 	asyncio.get_running_loop().create_task(self.getCallback()(self.getNaviBot(), client, self, runtimeArgs))
+			
+			await self.getNaviBot().criarTarefaAsync(self.getCallback()(self.getNaviBot(), client, self, runtimeArgs), canWait=self.getCanWait())
 
 			return True
 
@@ -209,7 +216,7 @@ class NaviCommand(NaviCallback):
 		return self.__usage
 
 	def setUsage(self, string):
-		if type(string) != str:
+		if string != None and type(string) != str:
 			raise TypeError("'{}' não é um str".format(string))
 
 		self.__usage = string
@@ -218,17 +225,19 @@ class NaviCommand(NaviCallback):
 		return self.__description
 
 	def setDescription(self, string):
-		if type(string) != str:
+		if string != None and type(string) != str:
 			raise TypeError("'{}' não é um str".format(string))
 
 		self.__description = string
 
 	async def run(self, client, message, args, flags):
 		if self.getIsEnabled():
-			if self.getCanWait():
-				await self.getCallback()(self.getNaviBot(), self, client, message, args, flags)
-			else:
-				asyncio.get_running_loop().create_task(self.getCallback()(self.getNaviBot(), self, client, message, args, flags))
+			# if self.getCanWait():
+			# 	await self.getCallback()(self.getNaviBot(), self, client, message, args, flags)
+			# else:
+			# 	asyncio.get_running_loop().create_task(self.getCallback()(self.getNaviBot(), self, client, message, args, flags))
+
+			await self.getNaviBot().criarTarefaAsync(self.getCallback()(self.getNaviBot(), self, client, message, args, flags), canWait=self.getCanWait())
 
 			return True
 

@@ -4,6 +4,7 @@
 		"bot_prefix": ";;",
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
 		"bot_playing_delay": 120,
+		"bot_modules": [],
 		"log_path": "messages.log"
 	},
 	"commands": {

@@ -13,6 +13,8 @@ from naviclient import NaviRoutine
 # Manipuladores de cada comando (são automaticamente detectados ao iniciar com o prefixo 'command_' ou 'command_owner')
 
 # É um command, porém é generico, ou seja, utilizado por outros objetos NaviCommand, portanto não tente adicioná-lo automaticamente utilizando o prefixo generic_ (ao invés de command_)
+# 
+# @TODO: Utilizar outro metodo que não bloqueie o processamento da thread atual, evitando possivel congelamento.
 async def generic_runshell(bot, h, client, message, args, flags):
 	# Pega o argumento de execução do nosso handler NaviCommand() acima de nós
 	cmdArgs = h.getStaticArgs()
@@ -97,18 +99,23 @@ async def command_remind(bot, h, client, message, args, flags):
 
 		return
 
+	segundos = 0
+
 	try:
-		every = re.search("^[0-9]+", flags["time"])
-		if every != None:
-			every = int(every[0])
-		unit = re.search("(h|m|s)$", flags["time"])
-		if unit != None:
-			unit = unit[0]
+		for tm in re.findall("[0-9]+[hms]", flags["time"]):
+			every = re.search("^[0-9]+", tm)
+			if every != None:
+				every = int(every[0])
+			unit = re.search("(h|m|s)$", tm)
+			if unit != None:
+				unit = unit[0]
+
+			segundos = segundos + NaviRoutine.intervalToSeconds(every, unit)
 	except Exception as e:
 		await bot.sendFeedback(message, navibot.NaviFeedback.ERROR, exception=e)
 		return
 
-	if every == None or unit == None or every == 0:
+	if segundos == 0:
 		await bot.sendFeedback(message, navibot.NaviFeedback.WARNING, text="O argumento '--time' não está em um formato valido")
 		return
 
@@ -116,7 +123,7 @@ async def command_remind(bot, h, client, message, args, flags):
 	tarefa = bot.obterTarefaAgendada(tarefa_str)
 
 	if tarefa == None:
-		tarefa = NaviRoutine(bot, navicallbacks.callbackRemind, name=tarefa_str, every=every, unit=unit, canWait=True, staticArgs={"remind_text": " ".join(args[1:]), "remind_date": datetime.now(), "message": message})
+		tarefa = NaviRoutine(bot, navicallbacks.callbackRemind, name=tarefa_str, every=segundos, unit="s", canWait=True, staticArgs={"remind_text": " ".join(args[1:]), "remind_date": datetime.now(), "message": message})
 		await bot.agendarTarefa(tarefa)
 		await bot.sendFeedback(message, navibot.NaviFeedback.SUCCESS)
 	else:
@@ -256,7 +263,6 @@ async def cli_help(bot, h, client, message, args, flags):
 async def cli_echo(bot, h, client, message, args, flags):
 	bot.logManager.write(" ".join(args[1:]), logtype=LogType.DEBUG)
 
-# @REWRITE: Atualizar a forma de interagir com chats de diferentes servidores via CLI, atualmente não está muito prático
 async def cli_context(bot, h, client, message, args, flags):
 	if len(args) < 2 and (not "show" in flags and not "clear" in flags):
 		bot.logManager.write(h.getUsage(), logtype=LogType.DEBUG)
@@ -305,7 +311,6 @@ async def cli_context(bot, h, client, message, args, flags):
 
 	await cli_context(bot, h, client, message, [], {"show": True})
 
-# @REWRITE: Atualizar a forma de interagir com chats de diferentes servidores via CLI, atualmente não está muito prático
 async def cli_say(bot, h, client, message, args, flags):
 	if len(args) < 2:
 		bot.logManager.write(h.getUsage(), logtype=LogType.DEBUG)
@@ -346,11 +351,8 @@ async def cli_task(bot, h, client, message, args, flags):
 
 async def cli_quit(bot, h, client, message, args, flags):
 	bot.logManager.write("Desligando o cliente...", logtype=LogType.WARNING)
-	bot.logManager.setAtivado(False)
-	bot.logManager.fechar()
-	await bot.httpClientSession.close()
 	await bot.fechar()
 
 async def cli_reload(bot, h, client, message, args, flags):
 	bot.logManager.write("Recarregando modulos...", logtype=LogType.WARNING)
-	bot.recarregar()
+	bot.inicializarModulos()
