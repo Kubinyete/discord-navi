@@ -102,6 +102,6 @@
 			"api_domain": "osu.ppy.sh",
 			"api_assets": "a.ppy.sh",
 			"api_getuser": "/api/get_user"
-		}
+		},
 	}
 }

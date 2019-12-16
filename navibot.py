@@ -327,7 +327,7 @@ class NaviBot:
 			if type(code) == str:
 				text = "```{}\n{}```".format(code, text)
 			elif code:
-				text = "```{}```".format(text)
+				text = "```\n{}```".format(text)
 			else:
 				if title != None:
 					embed = discord.Embed(title=title, description=text, color=discord.Colour.purple())
