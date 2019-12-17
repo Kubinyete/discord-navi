@@ -1,3 +1,5 @@
+ANSI_ESCAPE = "\033[{}m"
+
 ANSI_CODES = {
 	"reset": "0",
 	"bold": "1",
@@ -25,11 +27,10 @@ ANSI_CODES = {
 	"bwhite": "47"
 }
 
-ANSI_ESCAPE = "\033[{}m"
-
 # @SECTION
 # Funções uteis que manipulam os dados independentemente do bot
-def listarArgumentos(string):
+
+def get_args_from(string):
 	# @NOTE
 	# Estou fazendo a divisão da string para varias chaves de argumentos e flags, provavelmente existir já uma biblioteca que faça isso, porém vou utilizar esta função por enquanto
 	
@@ -39,8 +40,6 @@ def listarArgumentos(string):
 	stringAtiva = False
 	stringEscape = False
 
-	# @TODO
-	# Simplificar o código abaixo
 	for c in string:
 		if not stringAtiva:
 			if c == "\"":
@@ -75,8 +74,9 @@ def listarArgumentos(string):
 	if len(buffer) > 0:
 		args.append(buffer)
 
-	# @TODO
+	# @PERFORMANCE
 	# Essa parte poderia ser feita juntamente com a parte de cima, dispensando a necessidade de iterar pelos dados novamente
+	
 	i = 0
 	while i < len(args):
 		arg = args[i]
@@ -107,7 +107,7 @@ def listarArgumentos(string):
 
 	return args, flags
 
-def traduzirCores(str):
+def translate_sequences(str):
 	fstr = ""
 	cor = ""
 	corsequence = None
@@ -140,3 +140,4 @@ def traduzirCores(str):
 				fstr = fstr + c
 
 	return fstr
+	

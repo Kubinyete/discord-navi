@@ -3,33 +3,29 @@
 		"bot_token": "BOT_TOKEN",
 		"bot_prefix": ";;",
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
-		"bot_playing_delay": 120,
-		"bot_modules": [],
+		"bot_playing_delay": 60,
+		"bot_modules": ["defaultcommands", "osucommands"],
 		"log_path": "messages.log"
 	},
 	"commands": {
 		"owners": [],
-		"scripts": [
-			{
-				"command": "figlet",
-				"command_exec": "figlet",
-				"command_exec_args": "",
-				"command_input": "{fullargs}",
-				"owner_only": false,
-				"enabled": true,
-				"timeout": 1
-			},
-			{
-				"command": "bc",
-				"command_exec": "bc",
-				"command_exec_args": "-l",
-				"command_input": "{fullargs}\n",
-				"owner_only": false,
-				"enabled": true,
-				"timeout": 1
-			}
-		],
 		"descriptions": {
+			"help": {
+				"text": "Permite visualizar todos os comandos e informações do bot, especificar um comando como parâmetro mostrará mais informações detalhadas de uso.",
+				"usage": "help [cmd]"
+			},
+			"avatar": {
+				"text": "Retorna a imagem do usuário mencionado.",
+				"usage": "avatar <@Usuario>"
+			},
+			"embed": {
+				"text": "Retorna uma mensagem do tipo 'embed' de acordo com os parâmetros passados.",
+				"usage": "embed [descrição] [--title=texto] [--img=url]"
+			},
+			"remind": {
+				"text": "Registra um lembrete após o tempo especificado, envia o lembrete através de um canal privado, o parâmetro '--time' deverá ser informado juntamente com um número e unidade de tempo (Ex: --time=10s) onde: s=segundos, m=minutos e h=horas.",
+				"usage": "remind [--list] <texto> [--time=1h30m15s]"
+			},
 			"setgame": {
 				"text": "Apenas para usuários especificados, atualiza o status de jogo do bot.",
 				"usage": "setgame <texto> [--clear]"
@@ -38,33 +34,9 @@
 				"text": "Apenas para usuários especificados, troca o prefixo de ativação do bot independentemente do servidor.",
 				"usage": "setprefix [prefixo] [--clear]"
 			},
-			"avatar": {
-				"text": "Retorna a imagem do usuário mencionado.",
-				"usage": "avatar <@Usuario>"
-			},
-			"help": {
-				"text": "Permite visualizar todos os comandos e informações do bot, especificar um comando como parâmetro mostrará mais informações detalhadas de uso.",
-				"usage": "help [cmd]"
-			},
-			"embed": {
-				"text": "Retorna uma mensagem do tipo 'embed' de acordo com os parâmetros passados.",
-				"usage": "embed [descrição] [--title=texto] [--img=url]"
-			},
-			"remind": {
-				"text": "Registra um lembrete após o tempo especificado, envia o lembrete através de um canal privado, o parâmetro '--time' deverá ser informado juntamente com um número e unidade de tempo (Ex: --time=10s) onde: s=segundos, m=minutos e h=horas.",
-				"usage": "remind [--list] <texto> [--time=[0-9]+(s|m|h)]"
-			},
 			"osu": {
 				"text": "Retorna um perfil osu! de determinado usuário, o modo de jogo padrão é 'standard'",
 				"usage": "osu <username> [--mode=std|taiko|ctb|mania]"
-			},
-			"figlet": {
-				"text": "Utiliza o 'figlet' para retornar a frase informada em um texto ASCII de figuras.",
-				"usage": "figlet <texto>"
-			},
-			"bc": {
-				"text": "Utiliza o 'bc' para retonar o resultado de uma expressão (Ex: (1 + 1) * 2).",
-				"usage": "bc <expressão>"
 			}
 		}
 	},
@@ -79,7 +51,7 @@
 					"usage": "echo <texto>"
 				},
 				"context": {
-					"usage": "context [--show] [--clear] <id> [-u] [-g] [-c]"
+					"usage": "context [--show] [--clear] <id> [-u|g|c]"
 				},
 				"say": {
 					"usage": "say <texto>"

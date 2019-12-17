@@ -1,47 +1,39 @@
-from navilog import LogType
+import navilog
 import json
 
 class ConfigManager:
-	def __init__(self, configpath, logmanager):
-		self.__configValues = {}
-		self.__logManager = logmanager
+	def __init__(self, path, bot):
+		self._bot = bot
 
-		self.atualizarPath(configpath)
-		self.carregarConfig()
+		self.set_path(path)
+		self.load()
 
-	def atualizarPath(self, configpath):
-		if type(configpath) != str:
-			raise TypeError("'{}' não é uma str".format(configpath))
-
-		self.__configPath = configpath
+	def set_path(self, path):
+		self._path = path
 	
-	def recarregarConfig(self):
-		self.__configValues = {}
-
-		self.carregarConfig()
-
-	def carregarConfig(self):
+	def load(self):
+		self._keys = {}
+		
 		try:
-			with open(self.__configPath, "r", encoding="utf-8") as f:
-				self.__configValues = json.loads("".join(f.readlines()))
-				f.close()
+			with open(self._path, "r", encoding="utf-8") as f:
+				self._keys = json.loads("".join(f.readlines()))
 		except IOError:
-			self.__logManager.write("Não foi possível carregar o arquivo de configurações (" + self.__configPath + ")", LogType.ERROR)
+			self._bot.log.write("Não foi possível carregar o arquivo de configurações (" + self._path + ")", navilog.ERROR)
 		except ValueError:
-			self.__logManager.write("Não foi possível converter o arquivo de configurações em um objeto JSON", LogType.ERROR)
+			self._bot.log.write("Não foi possível converter o arquivo de configurações em um objeto JSON", navilog.ERROR)
 
-	def obter(self, indice):
+	def get(self, indice):
 		chaves = indice.split(".")
-		valorAtual = self.__configValues
+		atual = self._keys
 
 		if len(chaves) <= 0:
 			return
-
+			
 		try:
 			for i in chaves:
-				valorAtual = valorAtual[i]
+				atual = atual[i]
 		except KeyError:
-			self.__logManager.write("Não foi possível encontrar a chave de configurações (" + indice + ")", LogType.ERROR)
-			return None
+			self._bot.log.write("Não foi possível encontrar a chave de configurações (" + indice + ")", navilog.WARNING)
+			return ""
 
-		return valorAtual
+		return atual

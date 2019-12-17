@@ -1,11 +1,10 @@
 from datetime import datetime
 import re
 import discord
-import enum
 import sys
 import naviuteis
 
-LOG_STRING_VALUES = [
+LOGTYPE_STRING = [
 	r"{bold.white}Debug{reset}",
 	r"{bold.white}Informação{reset}",
 	r"{bold.yellow}Aviso{reset}",
@@ -13,146 +12,112 @@ LOG_STRING_VALUES = [
 	r"{bold.white}Mensagem{reset}"
 ]
 
-class LogType(enum.Enum):
-	DEBUG = 0
-	INFO = 1
-	WARNING = 2
-	ERROR = 3
-	MESSAGE = 4
+DEBUG = 0
+INFO = 1
+WARNING = 2
+ERROR = 3
+MESSAGE = 4
 
-	@staticmethod
-	def toString(logtype):
-		if type(logtype) != LogType:
-			raise TypeError("'{}' não é um enum do tipo LogType")
-
-		return LOG_STRING_VALUES[logtype.value]
+def logtype_string(logtype):
+	return LOGTYPE_STRING[logtype]
 
 class LogManager:
 	EXPR_LOG = "[{}] <{}> {}"
+	
 	EXPR_TEXTCHANNEL = "{{yellow}}{guild}{{reset}} #{{red}}{channel}{{reset}} ({channelid}) {{bold}}{user}{{reset}} : "
 	EXPR_DMCHANNEL = "{{magenta}}{user}{{reset}} ({userid}) : "
+	
 	EXPR_CLIINPUT = "{context} $ "
 	
-	def __init__(self, logpath, bot, cliBehavior=False):
-		self.__file = None
-		self.__cliBehavior = cliBehavior
-		self.__cliCharsOnScreen = 0
-		self.__bot = bot
-		self.atualizarPath(logpath)
+	def __init__(self, path, bot):
+		self._file = None
+		self._cli_chars_on_screen = 0
+		self._bot = bot
 
-	def obterContexto(self):
-		bot = self.__bot
+		self.set_path(path)
 
-		if type(bot.cliContext) == discord.User:
-			return "@{}".format(bot.cliContext.name)
-		elif type(bot.cliContext) == discord.TextChannel:
-			return "#{}".format(bot.cliContext.name)
-		elif type(bot.cliContext) == discord.Guild:
-			return "[{}]".format(bot.cliContext.name)
+	def get_context_string(self):
+		if type(self._bot.cli_context) == discord.User:
+			return "@{}".format(self._bot.cli_context.name)
+		elif type(self._bot.cli_context) == discord.TextChannel:
+			return "#{}".format(self._bot.cli_context.name)
+		elif type(self._bot.cli_context) == discord.Guild:
+			return "[{}]".format(self._bot.cli_context.name)
 		else:
 			return ""
 
-	def atualizarPath(self, logpath):
-		if type(logpath) != str:
-			raise TypeError("'{}' não é uma str".format(logpath))
-			
-		self.__path = logpath
-		self.__erro = False
-		self.setAtivado(len(logpath) > 0)
+	def set_path(self, path):
+		self._path = path
+		self._error = False
+		
+		self.enabled = len(path) > 0
 
-	def setAtivado(self, state):
-		if type(state) != bool:
-			raise TypeError("'{}' não é um bool".format(state))
+	def close(self):
+		if self._file != None:
+			self._file.flush()
+			self._file.close()
+			self._file = None
 
-		self.__enabled = state
-
-	def setComportamentoCli(self, state):
-		if type(state) != bool:
-			raise TypeError("'{}' não é um bool".format(state))
-
-		self.__cliBehavior = state
-
-	def addCharsOnScreen(self, qnt):
-		if type(qnt) != int:
-			raise TypeError("'{}' não é um int".format(qnt))
-
-		if qnt == -1:
-			self.__cliCharsOnScreen = 0
-		else:
-			self.__cliCharsOnScreen = self.__cliCharsOnScreen + qnt
-
-
-	def obterAtivado(self):
-		return self.__enabled
-
-	def fechar(self):
-		if self.__file != None:
-			self.__file.flush()
-			self.__file.close()
-			self.__file = None
-
-	def desenharInput(self, keepInputRegistered=False):
-		if len(self.__bot.cliBuffer) < self.__cliCharsOnScreen:
+	def draw_input(self, keep_input=False):
+		if len(self._bot.cli_buffer) < self._cli_chars_on_screen:
 			# Resetou com Enter ou Backspace
-			sys.stdout.write("\033[1G")													# Vai para o inicio da linha
-			sys.stdout.write("\033[0K")													# Limpa a linha atual (pode conter um Input anterior)
-			sys.stdout.write(self.EXPR_CLIINPUT.format(context=self.obterContexto()))	# Imprime o Input do usuário
+			
+			sys.stdout.write("\033[1G")														# Vai para o inicio da linha
+			sys.stdout.write("\033[0K")														# Limpa a linha atual (pode conter um Input anterior)
+			sys.stdout.write(self.EXPR_CLIINPUT.format(context=self.get_context_string()))	# Imprime o Input do usuário
 			
 			# Solicita para a função abaixo desenhar tudo que esteja disponível
-			self.__cliCharsOnScreen = 0
+			self._cli_chars_on_screen = 0
 
-		for i in self.__bot.cliBuffer[self.__cliCharsOnScreen:]:
+		for i in self._bot.cli_buffer[self._cli_chars_on_screen:]:
 			sys.stdout.write(i)
-			self.__cliCharsOnScreen = self.__cliCharsOnScreen + 1
+			self._cli_chars_on_screen = self._cli_chars_on_screen + 1
 
-		if keepInputRegistered:
+		if keep_input:
 			sys.stdout.write("\n")
-			self.__cliCharsOnScreen = 0
-			self.desenharInput()
+			self._cli_chars_on_screen = 0
+			self.draw_input()
 
 		sys.stdout.flush()
 
-	def write(self, msg, logtype=LogType.INFO):
-		msgBuffer = ""
+	def write(self, msg, logtype=INFO):
+		msg_buffer = ""
+		data = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
 		if type(msg) == str:
-			msgBuffer = naviuteis.traduzirCores(self.EXPR_LOG.format(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")), LogType.toString(logtype), msg))
+			msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data, logtype_string(logtype), msg))
 		elif type(msg) == discord.Message:
 			if type(msg.channel) == discord.DMChannel:
-				msgBuffer = naviuteis.traduzirCores(self.EXPR_LOG.format(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")), LogType.toString(logtype), self.EXPR_DMCHANNEL.format(user=msg.author.name, userid=msg.author.id))) + msg.content
+				msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data, logtype_string(logtype), self.EXPR_DMCHANNEL.format(user=msg.author.name, userid=msg.author.id))) + msg.content
 			else:
-				msgBuffer = naviuteis.traduzirCores(self.EXPR_LOG.format(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")), LogType.toString(logtype), self.EXPR_TEXTCHANNEL.format(guild=msg.channel.guild.name, channel=msg.channel.name, channelid=msg.channel.id, user=msg.author.name))) + msg.content
-		else:
-			raise TypeError("Tipo de 'msg' desconhecido")
+				msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data), logtype_string(logtype), self.EXPR_TEXTCHANNEL.format(guild=msg.channel.guild.name, channel=msg.channel.name, channelid=msg.channel.id, user=msg.author.name))) + msg.content
 
-		if self.__cliBehavior:
-			sys.stdout.write("\033[1G")													# Vai para o inicio da linha
-			sys.stdout.write("\033[0K")													# Limpa a linha atual (pode conter um Input anterior)
-			sys.stdout.write(msgBuffer + "\n")											# Imprime o conteudo do Log
-			sys.stdout.write(self.EXPR_CLIINPUT.format(context=self.obterContexto()))	# Imprime o Input do usuário
-			self.__cliCharsOnScreen = 0
-			self.desenharInput()
-			sys.stdout.flush()
-		else:
-			print(msgBuffer)
-
-		if self.__enabled and logtype != LogType.DEBUG:
-			# @NOTE
-			# Operação que congela a rotina atual
+		if self._bot.cli_enabled:
+			sys.stdout.write("\033[1G")														# Vai para o inicio da linha
+			sys.stdout.write("\033[0K")														# Limpa a linha atual (pode conter um Input anterior)
+			sys.stdout.write(msg_buffer + "\n")												# Imprime o conteudo do Log
 			
-			if self.__file == None:
-				try:
-					self.__file = open(self.__path, "a", encoding="utf-8")
-				except IOError:
-					if not self.__erro:
-						self.__erro = True
+			sys.stdout.write(self.EXPR_CLIINPUT.format(context=self.get_context_string()))	# Imprime o Input do usuário
+			
+			self._cli_chars_on_screen = 0
+			
+			self.draw_input()
+		else:
+			sys.stdout.write(msg_buffer + "\n")
 
-						self.write("Não foi possível escrever no arquivo de log especificado (" + self.__path + ")", LogType.ERROR)
+		if self._enabled and logtype != DEBUG:
+			if self._file == None:
+				try:
+					self._file = open(self._path, "a", encoding="utf-8")
+				except IOError:
+					if not self._erro:
+						self._erro = True
+						self.write("Não foi possível escrever no arquivo de log especificado (" + self._path + ")", logtype=ERROR)
 			else:
-				if self.__file.name != self.__path:
-					self.fechar()
+				if self._file.name != self._path:
+					self.close()
 					self.write(msg, logtype)
 				else:
-					self.__file.write(re.sub("\033\[[0-9]+(;[0-9]+)*m", "", msgBuffer) + "\n")
-					self.__erro = False
+					self._file.write(re.sub("\033\[[0-9]+(;[0-9]+)*m", "", msg_buffer) + "\n")
+					self._erro = False
 	
