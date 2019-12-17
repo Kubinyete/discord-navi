@@ -129,8 +129,8 @@ class NaviCommand(NaviCallback):
 
 		self.owneronly = owneronly
 		self.usage = "Informações de uso não disponíveis" if not usage else usage
-		self.description = "Nenhuma descrição não disponível" if not description else description
+		self.description = "Nenhuma descrição disponível" if not description else description
 
-	async def run(self, bot, message, args, flags, kwargs={}):
-		await self.callback(bot, bot.naviClient, message, args, flags, kwargs)
+	async def run(self, bot, message, args, flags):
+		await self.callback(bot, message, args, flags, self)
 		

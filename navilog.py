@@ -90,7 +90,7 @@ class LogManager:
 			if type(msg.channel) == discord.DMChannel:
 				msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data, logtype_string(logtype), self.EXPR_DMCHANNEL.format(user=msg.author.name, userid=msg.author.id))) + msg.content
 			else:
-				msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data), logtype_string(logtype), self.EXPR_TEXTCHANNEL.format(guild=msg.channel.guild.name, channel=msg.channel.name, channelid=msg.channel.id, user=msg.author.name)) + msg.content
+				msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data, logtype_string(logtype), self.EXPR_TEXTCHANNEL.format(guild=msg.channel.guild.name, channel=msg.channel.name, channelid=msg.channel.id, user=msg.author.name))) + msg.content
 
 		if self._bot.cli_enabled:
 			sys.stdout.write("\033[1G")														# Vai para o inicio da linha
@@ -110,14 +110,14 @@ class LogManager:
 				try:
 					self._file = open(self._path, "a", encoding="utf-8")
 				except IOError:
-					if not self._erro:
-						self._erro = True
+					if not self._error:
+						self._error = True
 						self.write("Não foi possível escrever no arquivo de log especificado (" + self._path + ")", logtype=ERROR)
 			else:
 				if self._file.name != self._path:
 					self.close()
 					self.write(msg, logtype)
 				else:
-					self._file.write(re.sub("\033\[[0-9]+(;[0-9]+)*m", "", msg_buffer) + "\n")
-					self._erro = False
+					self._file.write(re.sub(r"\033\[[0-9]+(;[0-9]+)*m", "", msg_buffer) + "\n")
+					self._error = False
 	

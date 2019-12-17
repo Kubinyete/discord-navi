@@ -6,6 +6,8 @@ import tty
 import termios
 import importlib
 import traceback
+import navilog
+from naviclient import NaviCommand
 from naviclient import NaviClient
 from navilog import LogManager
 from naviconfig import ConfigManager
@@ -48,6 +50,7 @@ class NaviBot:
 		self.log = LogManager("debug.log", self)
 		self.config = ConfigManager(configpath, self)
 		self.commands = CommandDictionary(self)
+		self.clicommands = CommandDictionary(self)
 		self.tasks = TaskScheduler(self)
 		self.http = None
 
@@ -59,27 +62,37 @@ class NaviBot:
 	def _load_events_from_module(self, mdl):
 		self.client.listen("on_ready", mdl.callbackLog)
 		self.client.listen("on_ready", mdl.callbackActivity)
-		#self.client.listen("on_ready", mdl.callbackCliListener)
+		self.client.listen("on_ready", mdl.callbackCliListener)
 		self.client.listen("on_message", mdl.callbackLog)
-		#self.client.listen("on_message", mdl.callbackCommandHandler)
+		self.client.listen("on_message", mdl.callbackCommandHandler)
 		self.client.listen("on_error", mdl.callbackError)
 
-	def _load_commands_from_module(self, mdl):
-		self.commands.load_from_module(mdl)
+	def _load_commands_from_module(self, module):
+		for k in module.__dict__:
+			if asyncio.iscoroutinefunction(module.__dict__[k]):
+				if k.startswith("cli_"):
+					atv = k[len("cli_"):]
+					self.clicommands.set(atv, NaviCommand(module.__dict__[k], name=atv, usage=self.config.get("cli.commands.descriptions.{}.usage".format(atv))))
+				elif k.startswith("command_owner_"):
+					atv = k[len("command_owner_"):]
+					self.commands.set(atv, NaviCommand(module.__dict__[k], name=atv, owneronly=True, usage=self.config.get("commands.descriptions.{}.usage".format(atv)), description=self.config.get("commands.descriptions.{}.text".format(atv))))
+				elif k.startswith("command_"):
+					atv = k[len("command_"):]
+					self.commands.set(atv, NaviCommand(module.__dict__[k], name=atv, owneronly=False, usage=self.config.get("commands.descriptions.{}.usage".format(atv)), description=self.config.get("commands.descriptions.{}.text".format(atv))))
 
 	def handle_exception(self, e):
 		if type(e) == tuple:
 			exctype = e[0]
 			exc = e[1]
-			excstack = e[2]
 		else:
 			exctype = type(e)
 			exc = e
-			excstack = traceback.format_exc()
+		
+		excstack = traceback.format_exc()
 
 		self.log.write("{bold.red}An exception has ocurred while running, please check the stack trace for more info.{reset}")
 		self.log.write("{{bold.red}}{}{{reset}} : {{bold.white}}{}{{reset}}".format(exctype, exc))
-		self.log.write("{{bold.white}}\n{}{{reset}}".format(excstack))
+		self.log.write("{{yellow}}{}{{reset}}".format(excstack))
 	
 	def _load_module(self, modulo):
 		if modulo in sys.modules:
@@ -121,7 +134,7 @@ class NaviBot:
 			await h.run(self, message, args, flags)
 
 	async def interpret_cli(self, cliargs, cliflags):
-		h = self.commands.get(cliargs[0])
+		h = self.clicommands.get(cliargs[0])
 
 		if h == None:
 			return
@@ -161,7 +174,7 @@ class NaviBot:
 	async def stop(self):
 		self.log.set_path("")
 		self.log.close()
-		await self.http.close()
+		#await self.http.close()
 		await self.client.navi_stop()
 
 	# @SECTION

@@ -34,15 +34,15 @@ class TaskScheduler:
 						self._bot.log.write("Perdido um ciclo de execução da tarefa '{}', timespent = '{:.3f}', segundos = '{}'".format(task.name, task.get_timespent(), segundos), logtype=navilog.WARNING)
 
 			task.running = False
-		except CancelledError as e:
-			self._bot.log.write("Cancelado a tarefa '{}'".format(task.name, task.get_timespent(), segundos), logtype=navilog.WARNING)
+		except asyncio.CancelledError:
+			self._bot.log.write("Cancelado a tarefa '{}'".format(task.name), logtype=navilog.WARNING)
 		finally:
 			key = task.name
 
 			if key in self._tasks.keys():
 				self._tasks[key].remove(task)
 			else:
-				self._bot.log.write("Estranho a tarefa '{}' está rodando porém não foi encontrada no dicionário".format(task.name, task.get_timespent(), segundos), logtype=navilog.WARNING)
+				self._bot.log.write("Estranho a tarefa '{}' está rodando porém não foi encontrada no dicionário".format(task.name), logtype=navilog.WARNING)
 
 	def cancel(self, task, key=None):
 		if key is None:
@@ -52,8 +52,8 @@ class TaskScheduler:
 			if not task.running_task is None:
 				try:
 					task.running_task.cancel()
-				except CancelledError:
-					self._bot.log.write("Solicitação do cancelamento da tarefa '{}' falhou pois a mesma já foi cancelada".format(task.name, task.get_timespent(), segundos), logtype=navilog.WARNING)
+				except asyncio.CancelledError:
+					self._bot.log.write("Solicitação do cancelamento da tarefa '{}' falhou pois a mesma já foi cancelada".format(task.name), logtype=navilog.WARNING)
 				finally:
 					self._tasks[key].remove(task)
 					
