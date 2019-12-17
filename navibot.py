@@ -11,6 +11,7 @@ import naviclient
 from navilog import LogManager
 from naviconfig import ConfigManager
 from navicommands import CommandDictionary
+from navitasks import TaskScheduler
 
 # Mensagem de texto padrão
 INFO = 0
@@ -27,8 +28,8 @@ class NaviBot:
 	def __init__(self, configpath, cli=True):
 		self.log = LogManager("debug.log", self)
 		self.config = ConfigManager(configpath, self)
-		self.commands = CommandDictionary()
-		self.tasks = TaskScheduler()
+		self.commands = CommandDictionary(self)
+		self.tasks = TaskScheduler(self)
 
 		self.log.set_path(self.config.get("global.log_path"))
 
@@ -75,7 +76,6 @@ class NaviBot:
 		self.playing_index = 0
 		
 		self._load_events_from_module(self._load_module("navicallbacks"))
-		self._load_commands_from_module(self._load_module("navicommands"))
 
 		for mdlstr in self.config.get("global.bot_modules"):
 			mdl = self._load_module(mdlstr)
@@ -105,7 +105,7 @@ class NaviBot:
 		await h.run(self, None, cliargs, cliflags)
 	
 	async def fetch_json(self, url, params):
-		return await self.http.request(url, params).json()
+		return await self.http.request_json(url, params)
 
 	def is_owner(self, author):
 		return author.id in self.config.get("commands.owners")
