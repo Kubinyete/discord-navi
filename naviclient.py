@@ -1,5 +1,6 @@
 import asyncio
 import time
+import sys
 import discord
 
 # @NOTE
@@ -24,7 +25,7 @@ class NaviClient(discord.Client):
 
 	async def on_error(self, *args, **kwargs):
 		for c in self._events["on_error"]:
-			await c.callback(self._bot, args, kwargs)
+			await c.callback(self._bot, sys.exc_info())
 
 	async def on_reaction_add(self, reaction, user):
 		for c in self._events["on_reaction_add"]:
@@ -53,13 +54,13 @@ class NaviClient(discord.Client):
 			pass
 
 	def remove(self, event, callback):
-		try
+		try:
 			self._events[event].remove(callback)
 		except KeyError:
 			pass
 
 	def remove_all_from(self, event):
-		try
+		try:
 			self._events[event] = []
 		except KeyError:
 			pass
@@ -76,10 +77,10 @@ class NaviClient(discord.Client):
 			"on_member_remove": []
 		}
 
-	def start(self, token):
+	def navi_start(self, token):
 		self.run(token)
 
-	async def stop(self):
+	async def navi_stop(self):
 		await self.logout()
 
 class NaviCallback:
@@ -89,9 +90,10 @@ class NaviCallback:
 		self.enabled = True
 
 class NaviRoutine(NaviCallback):
-	def __init__(self, callback, timespan, name=None, wait=False):
-		super().__init__(navibot, callback, name)
+	def __init__(self, callback, timespan, name=None):
+		super().__init__(callback, name)
 		self.timespan = timespan
+		self.running_task = None
 
 		self._timespent = 0
 
@@ -118,16 +120,16 @@ class NaviRoutine(NaviCallback):
 
 	async def run(self, bot, kwargs={}):
 		self._timespent = time.time()
-		await self.callback(bot, bot.naviClient, kwargs)
+		await self.callback(bot, kwargs)
 		self._timespent = time.time() - self._timespent
 
 class NaviCommand(NaviCallback):
-	def __init__(self, callback, name=None, owneronly=False, usage="Informações de uso não disponíveis", description="Nenhuma descrição disponível"):
-		super().__init__(navibot, callback, name)
+	def __init__(self, callback, name=None, owneronly=False, usage="", description=""):
+		super().__init__(callback, name)
 
 		self.owneronly = owneronly
-		self.usage = usage
-		self.description = description
+		self.usage = "Informações de uso não disponíveis" if not usage else usage
+		self.description = "Nenhuma descrição não disponível" if not description else description
 
 	async def run(self, bot, message, args, flags, kwargs={}):
 		await self.callback(bot, bot.naviClient, message, args, flags, kwargs)

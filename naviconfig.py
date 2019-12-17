@@ -4,21 +4,18 @@ import json
 class ConfigManager:
 	def __init__(self, path, bot):
 		self._bot = bot
-
-		self.set_path(path)
+		self.path = path
 		self.load()
 
-	def set_path(self, path):
-		self._path = path
-	
 	def load(self):
 		self._keys = {}
 		
 		try:
-			with open(self._path, "r", encoding="utf-8") as f:
+			with open(self.path, "r", encoding="utf-8") as f:
 				self._keys = json.loads("".join(f.readlines()))
+				f.close()
 		except IOError:
-			self._bot.log.write("Não foi possível carregar o arquivo de configurações (" + self._path + ")", navilog.ERROR)
+			self._bot.log.write("Não foi possível carregar o arquivo de configurações (" + self.path + ")", navilog.ERROR)
 		except ValueError:
 			self._bot.log.write("Não foi possível converter o arquivo de configurações em um objeto JSON", navilog.ERROR)
 

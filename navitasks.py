@@ -7,7 +7,7 @@ class TaskScheduler:
 		self._tasks = {}
 		self._bot = bot
 
-	def schedule(self, task, key=None, kwargs={}):
+	async def schedule(self, task, key=None, kwargs={}):
 		if key is None:
 			key = task.name
 
@@ -18,7 +18,7 @@ class TaskScheduler:
 
 		task.running_task = asyncio.get_running_loop().create_task(self._loopTask(task, kwargs))
 
-	async def _loopTask(self, task, kwargs):
+	async def _loopTask(self, task, kwargs={}):
 		try:
 			segundos = naviclient.NaviRoutine.interval_to_seconds(task.timespan)
 
@@ -39,7 +39,7 @@ class TaskScheduler:
 		finally:
 			key = task.name
 
-			if key in self._tasks:
+			if key in self._tasks.keys():
 				self._tasks[key].remove(task)
 			else:
 				self._bot.log.write("Estranho a tarefa '{}' está rodando porém não foi encontrada no dicionário".format(task.name, task.get_timespent(), segundos), logtype=navilog.WARNING)
@@ -48,7 +48,7 @@ class TaskScheduler:
 		if key is None:
 			key = task.name
 
-		if key in self._tasks:
+		if key in self._tasks.keys():
 			if not task.running_task is None:
 				try:
 					task.running_task.cancel()

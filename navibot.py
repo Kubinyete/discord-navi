@@ -1,13 +1,12 @@
-import discord
 import asyncio
+import discord
 import platform
-import time
 import sys
 import tty
 import termios
 import importlib
 import traceback
-import naviclient
+from naviclient import NaviClient
 from navilog import LogManager
 from naviconfig import ConfigManager
 from navicommands import CommandDictionary
@@ -24,37 +23,63 @@ WARNING = 3
 # O comando não foi bem sucedido porém foi usado incorretamente
 COMMAND_INFO = 4
 
+def feedback_string(feedback):
+	if feedback == INFO:
+		return r"ℹ"
+	elif feedback == ERROR:
+		return r"❌"
+	elif feedback == SUCCESS:
+		return r"✅"
+	elif feedback == WARNING:
+		return r"⚠"
+	else:
+		return r"ℹ"
+
 class NaviBot:
 	def __init__(self, configpath, cli=True):
-		self.log = LogManager("debug.log", self)
-		self.config = ConfigManager(configpath, self)
-		self.commands = CommandDictionary(self)
-		self.tasks = TaskScheduler(self)
-
-		self.log.set_path(self.config.get("global.log_path"))
-
-		self.client = naviclient.NaviClient(self)
-
 		# @NOTE
 		# Só ativa o listener de CLI caso esteja no Linux
+		# @TODO
+		# Passar toda lógica de CLI para um componente específico, não poluir a classe principal
 		self.cli_enabled = cli and platform.system() == "Linux"
 		self.cli_buffer = ""
 		self.cli_context = None
 
+		self.log = LogManager("debug.log", self)
+		self.config = ConfigManager(configpath, self)
+		self.commands = CommandDictionary(self)
+		self.tasks = TaskScheduler(self)
+		self.http = None
+
+		# Atualiza novamente o path para o especificado no arquivo de configurações
+		self.log.set_path(self.config.get("global.log_path"))
+
+		self.client = NaviClient(self)
+
 	def _load_events_from_module(self, mdl):
 		self.client.listen("on_ready", mdl.callbackLog)
-		#self.client.listen("on_ready", mdl.callbackActivity)
+		self.client.listen("on_ready", mdl.callbackActivity)
 		#self.client.listen("on_ready", mdl.callbackCliListener)
-		#self.client.listen("on_message", mdl.callbackLog)
+		self.client.listen("on_message", mdl.callbackLog)
 		#self.client.listen("on_message", mdl.callbackCommandHandler)
+		self.client.listen("on_error", mdl.callbackError)
 
 	def _load_commands_from_module(self, mdl):
 		self.commands.load_from_module(mdl)
 
-	def _handle_exception(self, e):
+	def handle_exception(self, e):
+		if type(e) == tuple:
+			exctype = e[0]
+			exc = e[1]
+			excstack = e[2]
+		else:
+			exctype = type(e)
+			exc = e
+			excstack = traceback.format_exc()
+
 		self.log.write("{bold.red}An exception has ocurred while running, please check the stack trace for more info.{reset}")
-		self.log.write("{{bold.red}}{}{{reset}} : {{bold.yellow}}{}{{reset}}".format(str(type(e)), e))
-		self.log.write("{bold.yellow}\n" + traceback.format_exc() + "{reset}")
+		self.log.write("{{bold.red}}{}{{reset}} : {{bold.white}}{}{{reset}}".format(exctype, exc))
+		self.log.write("{{bold.white}}\n{}{{reset}}".format(excstack))
 	
 	def _load_module(self, modulo):
 		if modulo in sys.modules:
@@ -63,7 +88,7 @@ class NaviBot:
 			try:
 				importlib.import_module(modulo)
 			except ImportError as e:
-				self._handle_exception(e)
+				self.handle_exception(e)
 				return
 
 		return sys.modules[modulo]
@@ -73,7 +98,6 @@ class NaviBot:
 		self.config.load()
 
 		self.prefix = self.config.get("global.bot_prefix")
-		self.playing_index = 0
 		
 		self._load_events_from_module(self._load_module("navicallbacks"))
 
@@ -116,45 +140,35 @@ class NaviBot:
 		# CLI está ativada?
 		if self.cli_enabled:
 			cli_stdin_saved_attr = termios.tcgetattr(sys.stdin)
-			self.cli_stdin_current_attr = termios.tcgetattr(sys.stdin)
+			cli_stdin_current_attr = termios.tcgetattr(sys.stdin)
 			
 			# Desativa o ECHO do console
-			self.cli_stdin_current_attr[3] = self.cli_stdin_current_attr[3] & ~termios.ECHO
-			
+			cli_stdin_current_attr[3] = cli_stdin_current_attr[3] & ~termios.ECHO
 			# Desativa o modo CANONICAL do console
-			self.cli_stdin_current_attr[3] = self.cli_stdin_current_attr[3] & ~termios.ICANON
-			
+			cli_stdin_current_attr[3] = cli_stdin_current_attr[3] & ~termios.ICANON
 			# Aplica as modificações
-			termios.tcsetattr(sys.stdin, termios.TCSANOW, self.cli_stdin_current_attr)
+			termios.tcsetattr(sys.stdin, termios.TCSANOW, cli_stdin_current_attr)
 
 		try:
-			self.client.start(self.config.get("global.bot_token"))
+			self.client.navi_start(self.config.get("global.bot_token"))
 		except Exception as e:
-			self._handle_exception(e)
+			self.handle_exception(e)
 		finally:
 			if self.cli_enabled:
+				# Retorna como o terminal estava anteriormente
 				termios.tcsetattr(sys.stdin, termios.TCSANOW, cli_stdin_saved_attr)
 
 	async def stop(self):
 		self.log.set_path("")
 		self.log.close()
-		await self.httpWorker.close()
-		await self.client.stop()
+		await self.http.close()
+		await self.client.navi_stop()
 
 	# @SECTION
 	# Funções auxiliares dos comandos do bot
 	
 	async def feedback(self, message, feedback=SUCCESS, title=None, text=None, code=False, exception=None):
-		if feedback == NaviFeedback.INFO:
-			await message.add_reaction(r"ℹ")
-		elif feedback == NaviFeedback.ERROR:
-			await message.add_reaction(r"❌")
-		elif feedback == NaviFeedback.SUCCESS:
-			await message.add_reaction(r"✅")
-		elif feedback == NaviFeedback.WARNING:
-			await message.add_reaction(r"⚠")
-		elif feedback == NaviFeedback.COMMAND_INFO:
-			await message.add_reaction(r"ℹ")
+		await message.add_reaction(feedback_string(feedback))
 
 		if text != None:
 			embed = None
@@ -177,4 +191,4 @@ class NaviBot:
 				await message.channel.send(text)
 
 		if exception != None:
-			self._handle_exception(ex)
+			self.handle_exception(exception)

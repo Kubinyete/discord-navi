@@ -90,7 +90,7 @@ class LogManager:
 			if type(msg.channel) == discord.DMChannel:
 				msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data, logtype_string(logtype), self.EXPR_DMCHANNEL.format(user=msg.author.name, userid=msg.author.id))) + msg.content
 			else:
-				msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data), logtype_string(logtype), self.EXPR_TEXTCHANNEL.format(guild=msg.channel.guild.name, channel=msg.channel.name, channelid=msg.channel.id, user=msg.author.name))) + msg.content
+				msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data), logtype_string(logtype), self.EXPR_TEXTCHANNEL.format(guild=msg.channel.guild.name, channel=msg.channel.name, channelid=msg.channel.id, user=msg.author.name)) + msg.content
 
 		if self._bot.cli_enabled:
 			sys.stdout.write("\033[1G")														# Vai para o inicio da linha
@@ -105,7 +105,7 @@ class LogManager:
 		else:
 			sys.stdout.write(msg_buffer + "\n")
 
-		if self._enabled and logtype != DEBUG:
+		if self.enabled and logtype != DEBUG:
 			if self._file == None:
 				try:
 					self._file = open(self._path, "a", encoding="utf-8")

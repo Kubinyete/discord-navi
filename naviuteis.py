@@ -30,9 +30,10 @@ ANSI_CODES = {
 # @SECTION
 # Funções uteis que manipulam os dados independentemente do bot
 
-def get_args_from(string):
+def get_args(string):
 	# @NOTE
-	# Estou fazendo a divisão da string para varias chaves de argumentos e flags, provavelmente existir já uma biblioteca que faça isso, porém vou utilizar esta função por enquanto
+	# Estou fazendo a divisão da string para varias chaves de argumentos e flags, provavelmente já exista
+	# uma biblioteca que faça isso
 	
 	args = []
 	flags = {}
