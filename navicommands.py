@@ -15,5 +15,5 @@ class CommandDictionary:
 	def set(self, key, handler):
 		self._commands[key] = handler
 
-	def getCommands(self):
+	def get_commands(self):
 		return self._commands

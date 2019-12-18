@@ -5,7 +5,7 @@ import navilog
 # Comandos disponibilizados para a CLI oferecida pelo bot
 
 async def cli_help(bot, message, args, flags, handler):
-	for key in bot.clicommands.getCommands().keys():
+	for key in bot.clicommands.get_commands().keys():
 		bot.log.write(bot.clicommands.get(key).usage, logtype=navilog.DEBUG)
 
 async def cli_echo(bot, message, args, flags, handler):

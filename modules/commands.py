@@ -11,7 +11,7 @@ async def command_help(bot, message, args, flags, handler):
 	if len(args) < 2:
 		helptext = "**Comandos disponíveis**\n\n"
 
-		for key in bot.commands.getCommands().keys():
+		for key in bot.commands.get_commands().keys():
 			helptext = helptext + "`{}`\n{}\n\n".format(bot.commands.get(key).name, bot.commands.get(key).description)
 	else:
 		handler = bot.commands.get(args[1])
