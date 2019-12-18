@@ -18,7 +18,7 @@ async def callbackActivity(bot, kwargs={}):
 	if not "loop" in kwargs:
 		kwargs["loop"] = True
 		kwargs["playing_index"] = 0
-		await bot.tasks.schedule(NaviRoutine(callbackActivity, timespan=(bot.config.get("global.bot_playing_delay"), "s")), key=None, kwargs=kwargs)
+		await bot.tasks.schedule(NaviRoutine(callbackActivity, timespan=(bot.config.get("global.bot_playing_delay"), "s")), kwargs=kwargs)
 		return
 
 	activities = bot.config.get("global.bot_playing")
@@ -50,7 +50,7 @@ async def callbackCliListener(bot, kwargs={}):
 
 	if not "loop" in kwargs.keys():
 		kwargs["loop"] = True
-		await bot.tasks.schedule(NaviRoutine(callbackCliListener, timespan=(bot.config.get("cli.update_delay"), "ms"), waitfor=False), key=None, kwargs=kwargs)
+		await bot.tasks.schedule(NaviRoutine(callbackCliListener, timespan=(bot.config.get("cli.update_delay"), "ms"), waitfor=False), kwargs=kwargs)
 		return
 
 	clilines = []

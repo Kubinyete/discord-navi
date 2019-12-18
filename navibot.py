@@ -100,7 +100,7 @@ class NaviBot:
 		else:
 			try:
 				importlib.import_module(modulo)
-			except ImportError as e:
+			except Exception as e:
 				self.handle_exception(e)
 				return
 
