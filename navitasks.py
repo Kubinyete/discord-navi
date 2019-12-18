@@ -20,7 +20,7 @@ class TaskScheduler:
 
 	async def _loopTask(self, task, kwargs={}):
 		try:
-			segundos = naviclient.NaviRoutine.interval_to_seconds(task.timespan)
+			segundos = task.get_timespan_seconds()
 
 			while task.enabled:
 				task.running = True

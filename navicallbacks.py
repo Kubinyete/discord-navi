@@ -50,7 +50,7 @@ async def callbackCliListener(bot, kwargs={}):
 
 	if not "loop" in kwargs.keys():
 		kwargs["loop"] = True
-		await bot.tasks.schedule(NaviRoutine(callbackCliListener, timespan=(bot.config.get("cli.update_delay"), "ms")), key=None, kwargs=kwargs)
+		await bot.tasks.schedule(NaviRoutine(callbackCliListener, timespan=(bot.config.get("cli.update_delay"), "ms"), waitfor=False), key=None, kwargs=kwargs)
 		return
 
 	clilines = []

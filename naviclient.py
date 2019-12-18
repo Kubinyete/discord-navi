@@ -17,35 +17,35 @@ class NaviClient(discord.Client):
 
 	async def on_ready(self):
 		for c in self._events["on_ready"]:
-			await c.callback(self._bot)
+			asyncio.get_running_loop().create_task(c.callback(self._bot))
 
 	async def on_message(self, message):
 		for c in self._events["on_message"]:
-			await c.callback(self._bot, message)
+			asyncio.get_running_loop().create_task(c.callback(self._bot, message))
 
 	async def on_error(self, *args, **kwargs):
 		for c in self._events["on_error"]:
-			await c.callback(self._bot, sys.exc_info())
+			asyncio.get_running_loop().create_task(c.callback(self._bot, sys.exc_info()))
 
 	async def on_reaction_add(self, reaction, user):
 		for c in self._events["on_reaction_add"]:
-			await c.callback(self._bot, reaction, user)
+			asyncio.get_running_loop().create_task(c.callback(self._bot, reaction, user))
 
 	async def on_reaction_remove(self, reaction, user):
 		for c in self._events["on_reaction_remove"]:
-			await c.callback(self._bot, reaction, user)
+			asyncio.get_running_loop().create_task(c.callback(self._bot, reaction, user))
 
 	async def on_reaction_clear(self, message, reactions):
 		for c in self._events["on_reaction_clear"]:
-			await c.callback(self._bot, message, reactions)
+			asyncio.get_running_loop().create_task(c.callback(self._bot, message, reactions))
 
 	async def on_member_join(self, member):
 		for c in self._events["on_member_join"]:
-			await c.callback(self._bot, member)
+			asyncio.get_running_loop().create_task(c.callback(self._bot, member))
 
 	async def on_member_remove(self, member):
 		for c in self._events["on_member_remove"]:
-			await c.callback(self._bot, member)
+			asyncio.get_running_loop().create_task(c.callback(self._bot, member))
 
 	def listen(self, event, callback):
 		try:
@@ -90,10 +90,11 @@ class NaviCallback:
 		self.enabled = True
 
 class NaviRoutine(NaviCallback):
-	def __init__(self, callback, timespan, name=None):
+	def __init__(self, callback, timespan, name=None, waitfor=True):
 		super().__init__(callback, name)
 		self.timespan = timespan
 		self.running_task = None
+		self.waitfor = waitfor
 
 		self._timespent = 0
 
@@ -118,10 +119,17 @@ class NaviRoutine(NaviCallback):
 
 		return segundos
 
+	def get_timespan_seconds(self):
+		return self.interval_to_seconds(self.timespan)
+
 	async def run(self, bot, kwargs={}):
-		self._timespent = time.time()
-		await self.callback(bot, kwargs)
-		self._timespent = time.time() - self._timespent
+		if not self.waitfor:
+			asyncio.get_running_loop().create_task(self.callback(bot, kwargs))
+			self._timespent = 0
+		else:
+			self._timespent = time.time()
+			await self.callback(bot, kwargs)
+			self._timespent = time.time() - self._timespent
 
 class NaviCommand(NaviCallback):
 	def __init__(self, callback, name=None, owneronly=False, usage="", description=""):
@@ -132,5 +140,5 @@ class NaviCommand(NaviCallback):
 		self.description = "Nenhuma descrição disponível" if not description else description
 
 	async def run(self, bot, message, args, flags):
-		await self.callback(bot, message, args, flags, self)
+		asyncio.get_running_loop().create_task(self.callback(bot, message, args, flags, self))
 		

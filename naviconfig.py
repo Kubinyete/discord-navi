@@ -34,3 +34,18 @@ class ConfigManager:
 			return ""
 
 		return atual
+
+	def set(self, indice, val):
+		chaves = indice.split(".")
+		atual = self._keys
+
+		if len(chaves) <= 0:
+			return
+
+		try:
+			for i in chaves[:-1]:
+				atual = atual[i]
+
+			atual[i] = val
+		except KeyError:
+			self._bot.log.write("Não foi possível atribuir na chave de configurações (" + indice + ")", navilog.WARNING)
