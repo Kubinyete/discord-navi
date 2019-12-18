@@ -90,11 +90,12 @@ class NaviCallback:
 		self.enabled = True
 
 class NaviRoutine(NaviCallback):
-	def __init__(self, callback, timespan, name=None, waitfor=True):
+	def __init__(self, callback, timespan, name=None, waitfor=True, kwargs={}):
 		super().__init__(callback, name)
 		self.timespan = timespan
 		self.running_task = None
 		self.waitfor = waitfor
+		self.kwargs = kwargs
 
 		self._timespent = 0
 
@@ -122,13 +123,13 @@ class NaviRoutine(NaviCallback):
 	def get_timespan_seconds(self):
 		return self.interval_to_seconds(self.timespan)
 
-	async def run(self, bot, kwargs={}):
+	async def run(self, bot):
 		if not self.waitfor:
-			asyncio.get_running_loop().create_task(self.callback(bot, kwargs))
+			asyncio.get_running_loop().create_task(self.callback(bot, self.kwargs))
 			self._timespent = 0
 		else:
 			self._timespent = time.time()
-			await self.callback(bot, kwargs)
+			await self.callback(bot, self.kwargs)
 			self._timespent = time.time() - self._timespent
 
 class NaviCommand(NaviCallback):

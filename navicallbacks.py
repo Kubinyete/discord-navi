@@ -18,7 +18,7 @@ async def callbackActivity(bot, kwargs={}):
 	if not "loop" in kwargs:
 		kwargs["loop"] = True
 		kwargs["playing_index"] = 0
-		await bot.tasks.schedule(NaviRoutine(callbackActivity, timespan=(bot.config.get("global.bot_playing_delay"), "s")), kwargs=kwargs)
+		await bot.tasks.schedule(NaviRoutine(callbackActivity, timespan=(bot.config.get("global.bot_playing_delay"), "s"), kwargs=kwargs))
 		return
 
 	activities = bot.config.get("global.bot_playing")
@@ -50,7 +50,7 @@ async def callbackCliListener(bot, kwargs={}):
 
 	if not "loop" in kwargs.keys():
 		kwargs["loop"] = True
-		await bot.tasks.schedule(NaviRoutine(callbackCliListener, timespan=(bot.config.get("cli.update_delay"), "ms"), waitfor=False), kwargs=kwargs)
+		await bot.tasks.schedule(NaviRoutine(callbackCliListener, timespan=(bot.config.get("cli.update_delay"), "ms"), waitfor=False, kwargs=kwargs))
 		return
 
 	clilines = []
@@ -82,8 +82,9 @@ async def callbackCliListener(bot, kwargs={}):
 
 async def callbackRemind(bot, kwargs):
 	message = kwargs["message"]
+	task = kwargs["task"]
+	remind_text = kwargs["remind_text"]
 
-	if "remind_text" in kwargs.keys():
-		await message.author.send("<@{}> Estou lembrando para você de **{}**".format(message.author.id, kwargs["remind_text"]))
-	else:
-		await message.author.send("<@{}> Estou te lembrando de algo!".format(message.author.id))
+	task.enabled = False
+
+	await message.author.send("Olá <@{}>, estou te enviando um lembrete para: **{}**".format(message.author.id, remind_text))
