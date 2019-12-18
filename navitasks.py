@@ -40,10 +40,9 @@ class TaskScheduler:
 			task.running = False
 		except asyncio.CancelledError:
 			self._bot.log.write("Cancelado a tarefa '{}'".format(task.name), logtype=navilog.WARNING)
+
+			task.running_task = None
 		finally:
-			# Caso 1, se a tarefa foi cancelada, a função tentará cancelar novamente porém falhará
-			# Caso 2 (o que queremos), se a tarefa foi desabilitada (saiu do loop), cancele qualquer instância da mesma rodando
-			# em plano de fundo.
 			self.cancel(task)
 
 	def cancel(self, task, key=None):
@@ -51,11 +50,10 @@ class TaskScheduler:
 			key = task.name
 
 		if key in self._tasks.keys():
-			if not task.running_task is None:
+			if task.running_task != None:
 				try:
 					task.running_task.cancel()
 				except asyncio.CancelledError:
 					self._bot.log.write("Ignorando cancelamento da tarefa '{}' pois a mesma já foi cancelada".format(task.name), logtype=navilog.WARNING)
-				finally:
-					self._tasks[key].remove(task)
 					
+			self._tasks[key].remove(task)
