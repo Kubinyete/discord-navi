@@ -13,6 +13,7 @@ from navilog import LogManager
 from naviconfig import ConfigManager
 from navicommands import CommandDictionary
 from navitasks import TaskScheduler
+from navihttp import HttpWorker
 
 # Mensagem de texto padrão
 INFO = 0
@@ -52,7 +53,7 @@ class NaviBot:
 		self.commands = CommandDictionary(self)
 		self.clicommands = CommandDictionary(self)
 		self.tasks = TaskScheduler(self)
-		self.http = None
+		self.http = HttpWorker(self)
 
 		# Atualiza novamente o path para o especificado no arquivo de configurações
 		self.log.set_path(self.config.get("global.log_path"))
@@ -140,9 +141,6 @@ class NaviBot:
 			return
 
 		await h.run(self, None, cliargs, cliflags)
-	
-	async def fetch_json(self, url, params):
-		return await self.http.request_json(url, params)
 
 	def is_owner(self, author):
 		return author.id in self.config.get("commands.owners")
@@ -174,7 +172,7 @@ class NaviBot:
 	async def stop(self):
 		self.log.set_path("")
 		self.log.close()
-		#await self.http.close()
+		await self.http.close()
 		await self.client.navi_stop()
 
 	# @SECTION
