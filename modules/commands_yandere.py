@@ -31,7 +31,7 @@ async def command_ynd(bot, message, args, flags, handler):
 
         naviimages = await api.search_for_post_naviimage(" ".join(args[2:] if len(args) > 2 else ""), limit=bot.config.get("external.yandere.max_allowed_posts_per_page"), page=curpage)
 
-        iv = NaviImageViewer(naviimages, message, title=f'Resultados para: {", ".join(args[2:])}')
+        iv = NaviImageViewer(naviimages, message, title=f'Ver original em yande.re')
         await iv.send_and_wait(bot)
         return
     else:
