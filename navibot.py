@@ -38,15 +38,20 @@ def feedback_string(feedback):
 	else:
 		return r"ℹ"
 
+class NaviImage:
+	def __init__(self, sample, source=None, title=None):
+		self.sample = sample
+		self.source = source if not source is None else sample
+		self.title = title
+
 class NaviImageViewer:
-	def __init__(self, images, request_message, title="", start=0, timeout=15, right_reaction=None, left_reaction=None):
+	def __init__(self, images, request_message, title=None, start=0, timeout=15, right_reaction=None, left_reaction=None):
 		self._images = images
 		self._timeout = timeout
 		self._index = start
 		self._request_message = request_message
 		self._displaying_message = None
 		self._in_use = True
-		self._cannot_edit = False
 
 		self.right_reaction = r"▶️" if right_reaction is None else right_reaction
 		self.left_reaction = r"◀️" if left_reaction is None else left_reaction
@@ -62,6 +67,14 @@ class NaviImageViewer:
 
 	def get_current_image(self):
 		return self._images[self._index]
+
+	def get_current_title(self):
+		currtitle = "NaviImageViewer" if self.title is None else self.title
+
+		if type(self.get_current_image()) == NaviImage and not self.get_current_image().title is None:
+			currtitle = self.get_current_image().title
+		
+		return currtitle
 
 	async def get_last_user_from(self, reaction):
 		return (await reaction.users().flatten())[-1]
@@ -82,9 +95,13 @@ class NaviImageViewer:
 		if previ == self._index:
 			return
 
+		currimg = self.get_current_image()
+
 		embed = self._displaying_message.embeds[0]
-		embed.url = self.get_current_image()
-		embed.set_image(url=self.get_current_image())
+		
+		embed.title = self.get_current_title()
+		embed.url = currimg.source if type(currimg) == NaviImage else currimg
+		embed.set_image(url=currimg.sample if type(currimg) == NaviImage else currimg)
 		embed.set_footer(text="{} - {}/{}".format(self._request_message.author.name, self._index + 1, len(self._images)), icon_url=self._request_message.author.avatar_url_as(size=32))
 
 		callbackstr = f"callbackImageViewer_{self._displaying_message.id}"
@@ -98,9 +115,12 @@ class NaviImageViewer:
 			bot.handle_exception(e)
 
 	async def send_and_wait(self, bot):
-		embed = discord.Embed(title=self.title, url=self.get_current_image(), color=discord.Colour.purple())
-		embed.set_image(url=self.get_current_image())
+		currimg = self.get_current_image()
+
+		embed = discord.Embed(title=self.title, url=currimg.source if type(currimg) == NaviImage else currimg, color=discord.Colour.purple())
+		embed.set_image(url=currimg.sample if type(currimg) == NaviImage else currimg)
 		embed.set_footer(text="{} - {}/{}".format(self._request_message.author.name, self._index + 1, len(self._images)), icon_url=self._request_message.author.avatar_url_as(size=32))
+		embed.title = self.get_current_title()
 
 		self._displaying_message = await self._request_message.channel.send(embed=embed)
 		await self._displaying_message.add_reaction(self.left_reaction)
@@ -147,7 +167,7 @@ class NaviBot:
 				else:
 					self.client.listen(evt, mdl.LISTEN[evt])
 		except AttributeError:
-			self.log.write("O modulo '{}' não possui o atributo LISTEN de tipo dict para atribuir eventos, ignorando...")
+			self.log.write(f"O modulo '{mdl.__name__}' não possui o atributo LISTEN de tipo dict para atribuir eventos, ignorando...")
 
 	def _load_commands_from_module(self, module):
 		for k in module.__dict__:
@@ -200,6 +220,7 @@ class NaviBot:
 			mdl = self._load_module(mdlstr)
 
 			if mdl != None:
+				self._load_events_from_module(mdl)
 				self._load_commands_from_module(mdl)
 
 	async def interpret_command(self, message, args, flags):

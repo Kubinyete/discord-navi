@@ -185,11 +185,11 @@ async def command_osu(bot, message, args, flags, handler):
 		country=json["country"].lower(), 
 		countryrank=json["pp_country_rank"], 
 		joindate=json["join_date"], 
-		playtime=int(json["total_seconds_played"]) / 86400, 
+		playtime=int(json["total_seconds_played"]) / 86400 if json["total_seconds_played"] is not None else 0, 
 		playcount=json["playcount"], 
 		ppraw=json["pp_raw"], 
-		accuracy=float(json["accuracy"]), 
-		level=float(json["level"]), 
+		accuracy=float(json["accuracy"]) if json["accuracy"] is not None else 0, 
+		level=float(json["level"]) if json["level"] is not None else 0, 
 		link="https://" + bot.config.get("external.osu.api_domain") + "/u/" + json["user_id"]
 	)
 
