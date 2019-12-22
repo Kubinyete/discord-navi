@@ -88,3 +88,12 @@ async def callbackRemind(bot, kwargs):
 	task.enabled = False
 
 	await message.author.send("Olá <@{}>, estou te enviando um lembrete para: **{}**".format(message.author.id, remind_text))
+
+# @SECTION
+# Dicionário de eventos para atribuir
+
+LISTEN = {
+	"on_ready": [callbackLog, callbackActivity, callbackCliListener],
+	"on_message": [callbackLog, callbackCommandHandler],
+	"on_error": [callbackError]
+}

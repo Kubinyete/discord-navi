@@ -47,22 +47,31 @@ class NaviClient(discord.Client):
 		for c in self._events["on_member_remove"]:
 			asyncio.get_running_loop().create_task(c.callback(self._bot, member))
 
-	def listen(self, event, callback):
+	def listen(self, event, callback, name=None):
 		try:
-			self._events[event].append(NaviCallback(callback))
-		except KeyError:
+			for nc in self._events[event]:
+				if name is None and (callback.__name__ == nc.name) or name == nc.name and callback == nc.callback:
+					return
+					
+			self._events[event].append(NaviCallback(callback, name=name))
+		except KeyError as e:
+			self._bot.handle_exception(e)
 			pass
 
-	def remove(self, event, callback):
+	def remove(self, event, callback, name=None):
 		try:
-			self._events[event].remove(callback)
-		except KeyError:
+			for nc in self._events[event]:
+				if name is None and (callback.__name__ == nc.name) or name == nc.name and callback == nc.callback:
+					self._events[event].remove(nc)
+		except KeyError as e:
+			self._bot.handle_exception(e)
 			pass
 
 	def remove_all_from(self, event):
 		try:
 			self._events[event] = []
-		except KeyError:
+		except KeyError as e:
+			self._bot.handle_exception(e)
 			pass
 
 	def remove_all(self):

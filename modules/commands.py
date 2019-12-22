@@ -4,12 +4,21 @@ import datetime
 import navibot
 from navicallbacks import callbackRemind
 from naviclient import NaviRoutine
+from navibot import NaviImageViewer
 
 # @SECTION
 # Comandos disponibilizados por padrão pelo bot
 
-async def command_helloworld(bot, message, args, flags, handler):
+async def command_owner_helloworld(bot, message, args, flags, handler):
     await bot.feedback(message, feedback=navibot.SUCCESS, title="Hello world!", text="Olá mundo!")
+
+async def command_owner_imageviewer(bot, message, args, flags, handler):
+	if len(args) < 2:
+		await bot.feedback(message, feedback=navibot.ERROR, text="É preciso informar uma lista de URLs como argumentos")
+		return
+	
+	iv = NaviImageViewer(args[1:], message, "imageviewer")
+	await iv.send_and_wait(bot)
 
 async def command_help(bot, message, args, flags, handler):
 	if len(args) < 2:

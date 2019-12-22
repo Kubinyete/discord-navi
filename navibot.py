@@ -38,6 +38,84 @@ def feedback_string(feedback):
 	else:
 		return r"ℹ"
 
+class NaviImageViewer:
+	def __init__(self, images, request_message, title="", start=0, timeout=15, right_reaction=None, left_reaction=None):
+		self._images = images
+		self._timeout = timeout
+		self._index = start
+		self._request_message = request_message
+		self._displaying_message = None
+		self._in_use = True
+		self._cannot_edit = False
+
+		self.right_reaction = r"▶️" if right_reaction is None else right_reaction
+		self.left_reaction = r"◀️" if left_reaction is None else left_reaction
+		self.title = title
+
+	def update_index(self, i):
+		new = self._index + i
+
+		if new >= 0 and new < len(self._images):
+			self._index = new
+
+		self._in_use = True
+
+	def get_current_image(self):
+		return self._images[self._index]
+
+	async def get_last_user_from(self, reaction):
+		return (await reaction.users().flatten())[-1]
+
+	async def callbackImageViewerReact(self, bot, reaction, user):
+		if reaction.message.id != self._displaying_message.id or await self.get_last_user_from(reaction) == bot.client.user:
+			return
+
+		previ = self._index
+
+		if reaction.emoji == self.right_reaction:
+			self.update_index(1)
+		elif reaction.emoji == self.left_reaction:
+			self.update_index(-1)
+		else:
+			return
+
+		if previ == self._index:
+			return
+
+		embed = self._displaying_message.embeds[0]
+		embed.url = self.get_current_image()
+		embed.set_image(url=self.get_current_image())
+		embed.set_footer(text="{} - {}/{}".format(self._request_message.author.name, self._index + 1, len(self._images)), icon_url=self._request_message.author.avatar_url_as(size=32))
+
+		callbackstr = f"callbackImageViewer_{self._displaying_message.id}"
+
+		try:
+			await self._displaying_message.edit(embed=embed)
+			self._in_use = True
+		except discord.Forbidden as e:
+			bot.client.remove("on_reaction_add", self.callbackImageViewerReact, callbackstr)
+		except discord.HTTPException as e:
+			bot.handle_exception(e)
+
+	async def send_and_wait(self, bot):
+		embed = discord.Embed(title=self.title, url=self.get_current_image(), color=discord.Colour.purple())
+		embed.set_image(url=self.get_current_image())
+		embed.set_footer(text="{} - {}/{}".format(self._request_message.author.name, self._index + 1, len(self._images)), icon_url=self._request_message.author.avatar_url_as(size=32))
+
+		self._displaying_message = await self._request_message.channel.send(embed=embed)
+		await self._displaying_message.add_reaction(self.left_reaction)
+		await self._displaying_message.add_reaction(self.right_reaction)
+
+		callbackstr = f"callbackImageViewer_{self._displaying_message.id}"
+
+		bot.client.listen("on_reaction_add", self.callbackImageViewerReact, callbackstr)
+
+		while self._in_use:
+			self._in_use = False
+			await asyncio.sleep(self._timeout)
+
+		bot.client.remove("on_reaction_add", self.callbackImageViewerReact, callbackstr)
+
 class NaviBot:
 	def __init__(self, configpath, cli=True):
 		# @NOTE
@@ -61,12 +139,15 @@ class NaviBot:
 		self.client = NaviClient(self)
 
 	def _load_events_from_module(self, mdl):
-		self.client.listen("on_ready", mdl.callbackLog)
-		self.client.listen("on_ready", mdl.callbackActivity)
-		self.client.listen("on_ready", mdl.callbackCliListener)
-		self.client.listen("on_message", mdl.callbackLog)
-		self.client.listen("on_message", mdl.callbackCommandHandler)
-		self.client.listen("on_error", mdl.callbackError)
+		try:
+			for evt in mdl.LISTEN.keys():
+				if type(mdl.LISTEN[evt]) == list:
+					for i in mdl.LISTEN[evt]:
+						self.client.listen(evt, i)
+				else:
+					self.client.listen(evt, mdl.LISTEN[evt])
+		except AttributeError:
+			self.log.write("O modulo '{}' não possui o atributo LISTEN de tipo dict para atribuir eventos, ignorando...")
 
 	def _load_commands_from_module(self, module):
 		for k in module.__dict__:
@@ -91,9 +172,9 @@ class NaviBot:
 		
 		excstack = traceback.format_exc()
 
-		self.log.write("{bold.red}An exception has ocurred while running, please check the stack trace for more info.{reset}")
-		self.log.write("{{bold.red}}{}{{reset}} : {{bold.white}}{}{{reset}}".format(exctype, exc))
-		self.log.write("{{yellow}}{}{{reset}}".format(excstack))
+		self.log.write("{bold.red}Uma exception ocorreu durante a execução, favor verificar a pilha de execução abaixo{reset}", logtype=navilog.ERROR)
+		self.log.write("{{bold.red}}{}{{reset}} : {{bold.white}}{}{{reset}}".format(exctype, exc), logtype=navilog.ERROR)
+		self.log.write("{{yellow}}{}{{reset}}".format(excstack), logtype=navilog.ERROR)
 	
 	def _load_module(self, modulo):
 		if modulo in sys.modules:
