@@ -319,7 +319,7 @@ class NaviBot:
 		if text != None:
 			embed = None
 
-			if code is str:
+			if isinstance(code, str):
 				text = "```{}\n{}```".format(code, text)
 			elif code:
 				text = "```\n{}```".format(text)
