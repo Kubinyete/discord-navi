@@ -141,6 +141,9 @@ class NaviRoutine(NaviCallback):
 			await self.callback(bot, self.kwargs)
 			self._timespent = time.time() - self._timespent
 
+	def __str__(self):
+		return f"{self.name}:{self.callback.__name__} ({self.timespan[0]}, {self.timespan[1]}) waifor={self.waitfor}"
+
 class NaviCommand(NaviCallback):
 	def __init__(self, callback, name=None, owneronly=False, usage="", description=""):
 		super().__init__(callback, name)

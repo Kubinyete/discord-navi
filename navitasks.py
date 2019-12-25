@@ -66,3 +66,6 @@ class TaskScheduler:
 			return self._tasks[key]
 		except KeyError:
 			return []
+
+	def get_all_keys(self):
+		return self._tasks.keys()

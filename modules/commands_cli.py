@@ -73,6 +73,23 @@ async def cli_say(bot, message, args, flags, handler):
 	except Exception as e:
 		bot.handle_exception(e)
 
+async def cli_task(bot, message, args, flags, handler):
+	# @TODO:
+	# Efetuar implementação dos métodos de manipulação de tarefas...
+	if not "list" in flags:
+		bot.log.write(handler.usage, logtype=navilog.DEBUG)
+
+	if "list" in flags:
+		for key in bot.tasks.get_all_keys():
+			taskstr = f"[{key}]: {{"
+			for task in bot.tasks.get(key):
+				taskstr += f"{str(task)} "
+			taskstr += "}"
+
+			bot.log.write(taskstr, logtype=navilog.DEBUG)
+	else:
+		pass
+
 async def cli_quit(bot, message, args, flags, handler):
 	bot.log.write("Desligando o cliente...", logtype=navilog.WARNING)
 	await bot.stop()

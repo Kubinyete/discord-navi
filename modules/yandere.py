@@ -12,7 +12,7 @@ class YandereImage(NaviImage):
             preview_url, 
             title=f"{id}",
             description=f"""
-*{tags}*
+`{tags}`
 Ver [amostra]({sample_url}) ({sample_width}x{sample_height}) ({naviuteis.bytes_string(sample_file_size)})
 Ver [original]({file_url}) ({width}x{height}) ({file_ext}, {naviuteis.bytes_string(file_size)})
 """,
