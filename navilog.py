@@ -37,11 +37,11 @@ class LogManager:
 		self.set_path(path)
 
 	def get_context_string(self):
-		if type(self._bot.cli_context) == discord.User:
+		if isinstance(self._bot.cli_context, discord.User):
 			return "@{}".format(self._bot.cli_context.name)
-		elif type(self._bot.cli_context) == discord.TextChannel:
+		elif isinstance(self._bot.cli_context, discord.TextChannel):
 			return "#{}".format(self._bot.cli_context.name)
-		elif type(self._bot.cli_context) == discord.Guild:
+		elif isinstance(self._bot.cli_context, discord.Guild):
 			return "[{}]".format(self._bot.cli_context.name)
 		else:
 			return ""
@@ -84,10 +84,10 @@ class LogManager:
 		msg_buffer = ""
 		data = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-		if type(msg) == str:
+		if isinstance(msg, str):
 			msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data, logtype_string(logtype), msg))
-		elif type(msg) == discord.Message:
-			if type(msg.channel) == discord.DMChannel:
+		elif isinstance(msg, discord.Message):
+			if isinstance(msg.channel,  discord.DMChannel):
 				msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data, logtype_string(logtype), self.EXPR_DMCHANNEL.format(user=msg.author.name, userid=msg.author.id))) + msg.content
 			else:
 				msg_buffer = naviuteis.translate_sequences(self.EXPR_LOG.format(data, logtype_string(logtype), self.EXPR_TEXTCHANNEL.format(guild=msg.channel.guild.name, channel=msg.channel.name, channelid=msg.channel.id, user=msg.author.name))) + msg.content

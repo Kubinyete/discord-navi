@@ -2,7 +2,22 @@ import asyncio
 import aiohttp
 import re
 import navilog
+import naviuteis
 from navibot import NaviImage
+from navibot import NaviImageViewer
+
+class YandereImage(NaviImage):
+    def __init__(self, id, tags, file_size, file_ext, file_url, width, height, sample_url, sample_width, sample_height, sample_file_size, preview_url, rating, eurl):
+        super().__init__( 
+            preview_url, 
+            title=f"{id}",
+            description=f"""
+*{tags}*
+Ver [amostra]({sample_url}) ({sample_width}x{sample_height}) ({naviuteis.bytes_string(sample_file_size)})
+Ver [original]({file_url}) ({width}x{height}) ({file_ext}, {naviuteis.bytes_string(file_size)})
+""",
+            url=eurl
+        )
 
 class TagSummary:
     def __init__(self, tagtype, relatives):
@@ -60,9 +75,10 @@ class YandereApi:
 
         return result
 
-    async def search_for_post_naviimage(self, tags, page=1, limit=0):
+    async def search_for_post(self, tags, page=1, limit=0):
         domain = self._bot.config.get("external.yandere.api_domain")
         endpoint = self._bot.config.get("external.yandere.api_getpost")
+        postshow = self._bot.config.get("external.yandere.api_postshow")
         disablensfw = self._bot.config.get("external.yandere.disable_nsfw")
 
         imgs = []
@@ -71,7 +87,23 @@ class YandereApi:
         try:
             for post in posts:
                 if not disablensfw or post["rating"] == "s":
-                    imgs.append(NaviImage(post["preview_url"], source=post["file_url"]))
+                    imgs.append(YandereImage(
+                        post["id"], 
+                        post["tags"],
+                        post["file_size"],
+                        post["file_ext"],
+                        post["file_url"],
+                        post["width"],
+                        post["height"],
+                        post["sample_url"],
+                        post["sample_width"],
+                        post["sample_height"],
+                        post["sample_file_size"],
+                        post["preview_url"],
+                        post["rating"],
+                        f'https://{domain}{postshow}{post["id"]}')
+                    )
+
         except Exception as e:
             self._bot.handle_exception(e)
 

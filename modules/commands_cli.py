@@ -23,15 +23,15 @@ async def cli_context(bot, message, args, flags, handler):
 			for g in bot.client.guilds:
 				bot.log.write("{} ({})".format(g.name, g.id), logtype=navilog.DEBUG)
 
-		elif type(bot.cli_context) == discord.User:
+		elif isinstance(bot.cli_context, discord.User):
 			bot.log.write("O usuário selecionado é: {} ({})".format(bot.cli_context.name, bot.cli_context.id), logtype=navilog.DEBUG)
-		elif type(bot.cli_context) == discord.TextChannel:
+		elif isinstance(bot.cli_context, discord.TextChannel):
 			bot.log.write("O canal selecionado é: {}#{} ({})".format(bot.cli_context.guild.name, bot.cli_context.name, bot.cli_context.id), logtype=navilog.DEBUG)
-		elif type(bot.cli_context) == discord.Guild:
+		elif isinstance(bot.cli_context, discord.Guild):
 			bot.log.write("A guild selecionada é: {} ({})".format(bot.cli_context.name, bot.cli_context.id), logtype=navilog.DEBUG)
 
 			for g in bot.cli_context.channels:
-				if type(g) == discord.TextChannel:
+				if isinstance(g, discord.TextChannel):
 					bot.log.write("#{} ({})".format(g.name, g.id), logtype=navilog.DEBUG)
 		else:
 			bot.log.write("O contexto selecionado é: {}".format(str(bot.cli_context)), logtype=navilog.DEBUG)
@@ -64,7 +64,7 @@ async def cli_say(bot, message, args, flags, handler):
 		bot.log.write(handler.usage, logtype=navilog.DEBUG)
 		return
 
-	if type(bot.cli_context) != discord.TextChannel and type(bot.cli_context) != discord.User:
+	if (not isinstance(bot.cli_context, discord.TextChannel)) and (not isinstance(bot.cli_context, discord.User)):
 		bot.log.write("Nenhum canal foi selecionado para enviar a mensagem, selecione utilizando o comando 'context'", logtype=navilog.DEBUG)
 		return
 

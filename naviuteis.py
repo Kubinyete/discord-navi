@@ -1,3 +1,5 @@
+import math
+
 ANSI_ESCAPE = "\033[{}m"
 
 ANSI_CODES = {
@@ -142,3 +144,12 @@ def translate_sequences(str):
 
 	return fstr
 	
+def bytes_string(bytes):
+	sizes = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+
+	i = 0
+	while (bytes / 1024.0 >= 1):
+		bytes = math.floor(bytes / 1024.0)
+		i += 1
+
+	return f"{bytes:.0f} {sizes[i]}"

@@ -39,13 +39,14 @@ def feedback_string(feedback):
 		return r"ℹ"
 
 class NaviImage:
-	def __init__(self, sample, source=None, title=None):
-		self.sample = sample
-		self.source = source if not source is None else sample
+	def __init__(self, image, title=None, description=None, url=None):
+		self.image = image
 		self.title = title
+		self.description = description
+		self.url = url
 
 class NaviImageViewer:
-	def __init__(self, images, request_message, title=None, start=0, timeout=15, right_reaction=None, left_reaction=None):
+	def __init__(self, images, request_message, title=None, description=None, url=None, start=0, timeout=60, right_reaction=None, left_reaction=None):
 		self._images = images
 		self._timeout = timeout
 		self._index = start
@@ -56,12 +57,22 @@ class NaviImageViewer:
 		self.right_reaction = r"▶️" if right_reaction is None else right_reaction
 		self.left_reaction = r"◀️" if left_reaction is None else left_reaction
 		self.title = title
+		self.description = description
+		self.url = url
 
-	def update_index(self, i):
-		new = self._index + i
+	def forward(self):
+		self._index += 1
 
-		if new >= 0 and new < len(self._images):
-			self._index = new
+		if self._index >= len(self._images):
+			self._index = 0
+
+		self._in_use = True
+
+	def backward(self):
+		self._index -= 1
+
+		if self._index < 0:
+			self._index = len(self._images) - 1
 
 		self._in_use = True
 
@@ -69,65 +80,87 @@ class NaviImageViewer:
 		return self._images[self._index]
 
 	def get_current_title(self):
-		currtitle = "NaviImageViewer" if self.title is None else self.title
+		currtitle = self.title
+		currimg = self.get_current_image()
 
-		if type(self.get_current_image()) == NaviImage and not self.get_current_image().title is None:
-			currtitle = self.get_current_image().title
+		if isinstance(currimg, NaviImage) and currimg.title != None:
+			currtitle = currimg.title
 		
 		return currtitle
+
+	def get_current_description(self):
+		currdescription = self.description
+		currimg = self.get_current_image()
+
+		if isinstance(currimg, NaviImage) and currimg.description != None:
+			currdescription = currimg.description
+
+		return currdescription
+
+	def get_current_url(self):
+		currurl = self.url
+		currimg = self.get_current_image()
+
+		if isinstance(currimg, NaviImage) and currimg.url != None:
+			currurl = currimg.url
+		
+		return currurl
+
+	def get_current_embed(self, existing_embed=None):
+		currimg = self.get_current_image()
+		currtitle = self.get_current_title()
+		currdescription = self.get_current_description()
+		currurl = self.get_current_url()
+
+		embed = discord.Embed(color=discord.Colour.purple()) if existing_embed is None else existing_embed
+		embed.title = currtitle
+		embed.description = currdescription
+		embed.url = currurl
+
+		embed.set_image(url=currimg.image if isinstance(currimg, NaviImage) else currimg)
+		embed.set_footer(text="{} - <{}/{}>".format(self._request_message.author.name, self._index + 1, len(self._images)), icon_url=self._request_message.author.avatar_url_as(size=32))
+
+		return embed
 
 	async def get_last_user_from(self, reaction):
 		return (await reaction.users().flatten())[-1]
 
 	async def callbackImageViewerReact(self, bot, reaction, user):
+		# @BUG: discord.py
+		# reaction.me apenas retorna verdadeiro com base no primeiro usuário que deu a reação (que no caso é sempre o próprio bot)
+		# @NOTE:
+		# Para evitar isso, é utilizado a função get_last_user_from(reaction) para obter a lista completa de pessoas que reagiram e retornando
+		# o ultimo usuário que consequentemente será o gerador do evento
 		if reaction.message.id != self._displaying_message.id or await self.get_last_user_from(reaction) == bot.client.user:
 			return
 
-		previ = self._index
-
 		if reaction.emoji == self.right_reaction:
-			self.update_index(1)
+			self.forward()
 		elif reaction.emoji == self.left_reaction:
-			self.update_index(-1)
+			self.backward()
 		else:
 			return
 
-		if previ == self._index:
-			return
-
-		currimg = self.get_current_image()
-
-		embed = self._displaying_message.embeds[0]
-		
-		embed.title = self.get_current_title()
-		embed.url = currimg.source if type(currimg) == NaviImage else currimg
-		embed.set_image(url=currimg.sample if type(currimg) == NaviImage else currimg)
-		embed.set_footer(text="{} - {}/{}".format(self._request_message.author.name, self._index + 1, len(self._images)), icon_url=self._request_message.author.avatar_url_as(size=32))
-
+		embed = self.get_current_embed(self._displaying_message.embeds[0])
 		callbackstr = f"callbackImageViewer_{self._displaying_message.id}"
 
 		try:
 			await self._displaying_message.edit(embed=embed)
 			self._in_use = True
-		except discord.Forbidden as e:
+		except discord.Forbidden:
 			bot.client.remove("on_reaction_add", self.callbackImageViewerReact, callbackstr)
 		except discord.HTTPException as e:
 			bot.handle_exception(e)
 
 	async def send_and_wait(self, bot):
-		currimg = self.get_current_image()
-
-		embed = discord.Embed(title=self.title, url=currimg.source if type(currimg) == NaviImage else currimg, color=discord.Colour.purple())
-		embed.set_image(url=currimg.sample if type(currimg) == NaviImage else currimg)
-		embed.set_footer(text="{} - {}/{}".format(self._request_message.author.name, self._index + 1, len(self._images)), icon_url=self._request_message.author.avatar_url_as(size=32))
-		embed.title = self.get_current_title()
+		embed = self.get_current_embed()
 
 		self._displaying_message = await self._request_message.channel.send(embed=embed)
+
 		await self._displaying_message.add_reaction(self.left_reaction)
 		await self._displaying_message.add_reaction(self.right_reaction)
 
 		callbackstr = f"callbackImageViewer_{self._displaying_message.id}"
-
 		bot.client.listen("on_reaction_add", self.callbackImageViewerReact, callbackstr)
 
 		while self._in_use:
@@ -161,7 +194,7 @@ class NaviBot:
 	def _load_events_from_module(self, mdl):
 		try:
 			for evt in mdl.LISTEN.keys():
-				if type(mdl.LISTEN[evt]) == list:
+				if isinstance(mdl.LISTEN[evt], list):
 					for i in mdl.LISTEN[evt]:
 						self.client.listen(evt, i)
 				else:
@@ -183,7 +216,7 @@ class NaviBot:
 					self.commands.set(atv, NaviCommand(module.__dict__[k], name=atv, owneronly=False, usage=self.config.get("commands.descriptions.{}.usage".format(atv)), description=self.config.get("commands.descriptions.{}.text".format(atv))))
 
 	def handle_exception(self, e):
-		if type(e) == tuple:
+		if e is tuple:
 			exctype = e[0]
 			exc = e[1]
 		else:
@@ -286,7 +319,7 @@ class NaviBot:
 		if text != None:
 			embed = None
 
-			if type(code) == str:
+			if code is str:
 				text = "```{}\n{}```".format(code, text)
 			elif code:
 				text = "```\n{}```".format(text)

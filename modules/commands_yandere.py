@@ -29,11 +29,14 @@ async def command_ynd(bot, message, args, flags, handler):
         except (KeyError, ValueError):
             pass
 
-        naviimages = await api.search_for_post_naviimage(" ".join(args[2:] if len(args) > 2 else ""), limit=bot.config.get("external.yandere.max_allowed_posts_per_page"), page=curpage)
+        tagstr = " ".join(args[2:] if len(args) > 2 else "")
+        naviimages = await api.search_for_post(tagstr, limit=bot.config.get("external.yandere.max_allowed_posts_per_page"), page=curpage)
 
-        iv = NaviImageViewer(naviimages, message, title=f'Ver original em yande.re')
-        await iv.send_and_wait(bot)
-        return
+        if len(naviimages) > 0:
+            iv = NaviImageViewer(naviimages, message)
+            await iv.send_and_wait(bot)
+        else:
+            await bot.feedback(message, navibot.WARNING, text=f"Nenhuma imagem foi encontrada para o conjunto de tags:\n{tagstr}")
     else:
         await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
 
