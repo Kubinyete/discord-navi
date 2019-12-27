@@ -90,6 +90,21 @@ async def cli_task(bot, message, args, flags, handler):
 	else:
 		pass
 
+async def cli_event(bot, message, args, flags, handler):
+	if not "list" in flags:
+		bot.log.write(handler.usage, logtype=navilog.DEBUG)
+
+	if "list" in flags:
+		for key in bot.client.get_all_keys():
+			eventstr = f"[{key}]: {{"
+			for callback in bot.client.get_callbacks_from(key):
+				eventstr += f"{str(callback)} "
+			eventstr += "}"
+
+			bot.log.write(eventstr, logtype=navilog.DEBUG)
+	else:
+		pass
+
 async def cli_quit(bot, message, args, flags, handler):
 	bot.log.write("Desligando o cliente...", logtype=navilog.WARNING)
 	await bot.stop()

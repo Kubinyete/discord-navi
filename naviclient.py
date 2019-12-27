@@ -56,7 +56,6 @@ class NaviClient(discord.Client):
 			self._events[event].append(NaviCallback(callback, name=name))
 		except KeyError as e:
 			self._bot.handle_exception(e)
-			pass
 
 	def remove(self, event, callback, name=None):
 		try:
@@ -65,14 +64,12 @@ class NaviClient(discord.Client):
 					self._events[event].remove(nc)
 		except KeyError as e:
 			self._bot.handle_exception(e)
-			pass
 
 	def remove_all_from(self, event):
 		try:
 			self._events[event] = []
 		except KeyError as e:
 			self._bot.handle_exception(e)
-			pass
 
 	def remove_all(self):
 		self._events = {
@@ -86,6 +83,15 @@ class NaviClient(discord.Client):
 			"on_member_remove": []
 		}
 
+	def get_all_keys(self):
+		return self._events.keys()
+
+	def get_callbacks_from(self, event):
+		try:
+			return self._events[event]
+		except KeyError as e:
+			self._bot.handle_exception(e)
+
 	def navi_start(self, token):
 		self.run(token)
 
@@ -97,6 +103,9 @@ class NaviCallback:
 		self.callback = callback
 		self.name = callback.__name__ if name is None else name
 		self.enabled = True
+	
+	def __str__(self):
+		return f"{self.name}:{self.callback.__name__} enabled={self.enabled}"
 
 class NaviRoutine(NaviCallback):
 	def __init__(self, callback, timespan, name=None, waitfor=True, kwargs={}):
@@ -142,7 +151,7 @@ class NaviRoutine(NaviCallback):
 			self._timespent = time.time() - self._timespent
 
 	def __str__(self):
-		return f"{self.name}:{self.callback.__name__} ({self.timespan[0]}, {self.timespan[1]}) waifor={self.waitfor}"
+		return f"{self.name}:{self.callback.__name__} ({self.timespan[0]}, {self.timespan[1]}) waifor={self.waitfor} enabled={self.enabled} kwargs={self.kwargs}"
 
 class NaviCommand(NaviCallback):
 	def __init__(self, callback, name=None, owneronly=False, usage="", description=""):
