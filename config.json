@@ -1,0 +1,88 @@
+{
+	"global": {
+		"bot_token": "DISCORD_BOT_TOKEN",
+		"bot_prefix": ";;",
+		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
+		"bot_playing_delay": 120,
+		"bot_modules": ["modules.commands", "modules.commands_cli", "modules.commands_yandere"],
+		"log_path": ""
+	},
+	"commands": {
+		"owners": [],
+		"descriptions": {
+			"help": {
+				"text": "Permite visualizar todos os comandos e informações do bot, especificar um comando como parâmetro mostrará mais informações detalhadas de uso.",
+				"usage": "help [comando]"
+			},
+			"avatar": {
+				"text": "Retorna a imagem do usuário mencionado.",
+				"usage": "avatar <@Usuario>"
+			},
+			"embed": {
+				"text": "Retorna uma mensagem do tipo 'embed' de acordo com os parâmetros passados.",
+				"usage": "embed [descricao] [--title=texto] [--img=url]"
+			},
+			"remind": {
+				"max_allowed_per_user": 3,
+				"text": "Registra um lembrete após o tempo especificado, envia o lembrete através de um canal privado, o parâmetro '--time' deverá ser informado juntamente com um número e unidade de tempo (Ex: --time=10s) onde: s=segundos, m=minutos e h=horas.",
+				"usage": "remind [--list] [--remove=id] <titulo> [--time=1h30m15s]"
+			},
+			"osu": {
+				"text": "Retorna um perfil osu! de determinado usuário, o modo de jogo padrão é 'standard'",
+				"usage": "osu <Usuario> [--mode=std|taiko|ctb|mania]"
+			},
+			"ynd": {
+				"text": "Retorna buscas feitas utilizando a API yande.re, é possível efetuar buscas por tags e visualizar postagens contendo tais tags.",
+				"usage": "ynd <tag|post> [tag1] ..."
+			}
+		}
+	},
+	"cli": {
+		"update_delay": 33,
+		"commands": {
+			"descriptions": {
+				"help": {
+					"usage": "help"
+				},
+				"echo": {
+					"usage": "echo <texto>"
+				},
+				"context": {
+					"usage": "context [--show] [--clear] <id> [-u|g|c]"
+				},
+				"say": {
+					"usage": "say <texto>"
+				},
+				"task": {
+					"usage": "task [--list]"
+				},
+				"event": {
+					"usage": "event [--list]"
+				},
+				"reload": {
+					"usage": "reload"
+				},
+				"quit": {
+					"usage": "quit"
+				}
+			}
+		}
+	},
+	"external": {
+		"osu": {
+			"api_key": "OSU_API_KEY",
+			"api_domain": "osu.ppy.sh",
+			"api_assets": "a.ppy.sh",
+			"api_getuser": "/api/get_user"
+		},
+		"yandere": {
+			"disable_nsfw": true,
+			"max_allowed_tag_output": 20,
+			"max_allowed_posts_per_page": 50,
+			"api_domain": "yande.re",
+			"api_gettagsummary": "/tag/summary.json",
+			"api_getpost": "/post.json",
+			"api_postshow": "/post/show/"
+		}
+	}
+}
