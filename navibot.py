@@ -173,8 +173,8 @@ class EmbedSlide:
 		if len(item.image) > 0:
 			embed.set_image(url=item.image)
 			
-			if len(item.thumbnail):
-				embed.set_thumbnail(url=item.thumbnail)
+		if len(item.thumbnail):
+			embed.set_thumbnail(url=item.thumbnail)
 
 		if isinstance(item.author, tuple):
 			if len(item.author) > 0:
@@ -189,9 +189,9 @@ class EmbedSlide:
 
 		for field in item.fields:
 			if len(field) == 3:
-				embed.add_field(field[0], field[1], inline=field[2])
+				embed.add_field(name=field[0], value=field[1], inline=field[2])
 			else:
-				embed.add_field(field[0], field[1], inline=False)
+				embed.add_field(name=field[0], value=field[1], inline=False)
 
 		embed.set_footer(text=f"{self._request_message.author.name} - {self._index + 1}/{len(self._items)}", icon_url=self._request_message.author.avatar_url_as(size=32))
 

@@ -23,9 +23,9 @@ class YandereApi:
         domain = self._bot.config.get("external.yandere.api_domain")
         endpoint = self._bot.config.get("external.yandere.api_gettagsummary")
 
-        self._bot.log.write(f"YandereApi: Carregando sumário de tags através do endpoint '{domain}{endpoint}'", logtype=navilog.DEBUG)
+        self._bot.log.write(f"YandereApi: Carregando sumário de tags através do endpoint '{domain}/{endpoint}'", logtype=navilog.DEBUG)
 
-        json = await self._bot.http.fetch_json(f"https://{domain}{endpoint}")
+        json = await self._bot.http.fetch_json(f"https://{domain}/{endpoint}")
 
         try:
             taggroups = json["data"].split(" ")
@@ -64,4 +64,8 @@ class YandereApi:
         endpoint = self._bot.config.get("external.yandere.api_getpost")
         postshow = self._bot.config.get("external.yandere.api_postshow")
 
-        return await self._bot.http.fetch_json(f"https://{domain}{endpoint}", params={"tags": tags, "limit": limit, "page": page})
+        return await self._bot.http.fetch_json(f"https://{domain}/{endpoint}", params={
+            "tags": tags, 
+            "limit": limit, 
+            "page": page
+        })

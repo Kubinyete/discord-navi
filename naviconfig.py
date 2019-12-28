@@ -3,6 +3,13 @@ import json
 
 class ConfigManager:
 	def __init__(self, path, bot):
+		"""Componente responsável por carregar, armazenar e alterar as informações do arquivo de configurações.
+		
+		Args:
+		    path (str): O caminho do arquivo de configurações JSON a ser utilizado.
+		    bot (TYPE): A instância do bot responsável.
+		"""
+		
 		self._bot = bot
 		self.path = path
 		self.load()

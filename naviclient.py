@@ -10,6 +10,12 @@ import discord
 
 class NaviClient(discord.Client):
 	def __init__(self, bot):
+		"""Classe cliente responsável por comunicar com a API do discord.
+		
+		Args:
+		    bot (NaviBot): A instância do bot responsável.
+		"""
+
 		super().__init__()
 		self._bot = bot
 
@@ -139,6 +145,13 @@ class NaviClient(discord.Client):
 
 class NaviCallback:
 	def __init__(self, callback, name=None):
+		"""Objeto que representa uma função encapsulada.
+		
+		Args:
+		    callback (function): A função em questão, deverá ser uma coroutine.
+		    name (str, optional): Apelido dado para tal função.
+		"""
+
 		self.callback = callback
 		self.name = callback.__name__ if name is None else name
 		self.enabled = True
@@ -148,6 +161,16 @@ class NaviCallback:
 
 class NaviRoutine(NaviCallback):
 	def __init__(self, callback, timespan, name=None, waitfor=True, kwargs={}):
+		"""Define uma rotina capaz de ser executada a cada intervalo de tempo.
+		
+		Args:
+		    callback (function): A função em questão, deverá ser uma coroutine.
+		    timespan (tuple(int, str)): Tuple cujo define uma quantidade em inteiro e uma string que define a unidade de tempo.
+		    name (str, optional): Apelido dado para tal função.
+		    waitfor (bool, optional): Define se deve Esperar até finalizar a execução da função.
+		    kwargs (dict, optional): Dicionário de argumentos passados diretamente para a função ao ser executada.
+		"""
+
 		super().__init__(callback, name)
 		self.timespan = timespan
 		self.running_task = None
@@ -222,6 +245,15 @@ class NaviRoutine(NaviCallback):
 
 class NaviCommand(NaviCallback):
 	def __init__(self, callback, name=None, owneronly=False, usage="", description=""):
+		"""Define um objeto encapsulador de um comando do bot.
+		
+		Args:
+		    callback (function): A função em questão, deverá ser uma coroutine.
+		    name (str, optional): Apelido dado para tal função.
+		    owneronly (bool, optional): Define se apenas pode ser executado por owners.
+		    usage (str, optional): Informações de uso.
+		    description (str, optional): Descrição detalhada.
+		"""
 		super().__init__(callback, name)
 
 		self.owneronly = owneronly

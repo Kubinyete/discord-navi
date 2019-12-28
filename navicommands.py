@@ -3,6 +3,12 @@ from naviclient import NaviCommand
 
 class CommandDictionary:
 	def __init__(self, bot):
+		"""Dicionário de comandos do bot, será responsável por guardar diversos NaviCommand que contém as funções de comando.
+		
+		Args:
+		    bot (NaviBot): A instância do bot responsável.
+		"""
+
 		self._commands = {}
 		self._bot = bot
 

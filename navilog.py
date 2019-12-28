@@ -47,6 +47,13 @@ class LogManager:
 	EXPR_CLIINPUT = "{context} $ "
 	
 	def __init__(self, path, bot):
+		"""Componente responsável por efetuar as operações de log do bot.
+		
+		Args:
+		    path (str): O caminho do arquivo de log a ser utilizado.
+		    bot (NaviBot): A instância do bot responsável.
+		"""
+
 		self._file = None
 		self._bot = bot
 		self._cli_chars_on_screen = 0

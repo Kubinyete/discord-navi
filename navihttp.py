@@ -2,6 +2,12 @@ import aiohttp
 
 class HttpWorker:
     def __init__(self, bot):
+        """Componente responsável por realizar pedidos HTTP, utilizado pelas diversas APIs.
+        
+        Args:
+            bot (NaviBot): A instância do bot responsável.
+        """
+        
         self._session = aiohttp.ClientSession()
         self._bot = bot
 

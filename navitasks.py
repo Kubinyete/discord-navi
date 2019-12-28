@@ -3,6 +3,12 @@ import navilog
 
 class TaskScheduler:
 	def __init__(self, bot):
+		"""Componente composto de um dicionário de rotinas, capaz de agendar uma rotina para ser executada de acordo com seu intervalo.
+		
+		Args:
+		    bot (NaviBot): A instância do bot em questão.
+		"""
+		
 		self._tasks = {}
 		self._bot = bot
 

@@ -17,23 +17,27 @@ async def command_ynd(bot, message, args, flags, handler):
     if "tag" == args[1]:
         tags = api.search_for_tag(" ".join(args[2:]), re="re" in flags)
 
-        items = []
-        per_page = bot.config.get("external.yandere.max_allowed_tags_per_page")
-        rindex = per_page - 1
-        lindex = 0
+        if len(tags) > 0:
+            items = []
+            per_page = bot.config.get("external.yandere.max_allowed_tags_per_page")
+            rindex = per_page - 1
+            lindex = 0
 
-        while lindex < len(tags):
-            current_slice = tags[lindex:rindex]
+            while lindex < len(tags):
+                current_slice = tags[lindex:rindex]
 
-            items.append(EmbedSlideItem(
-                title="Resultados da busca",
-                description='`' + "\n".join(current_slice) + '`',
-            ))
+                items.append(EmbedSlideItem(
+                    title="Resultados da busca",
+                    description='`' + "\n".join(current_slice) + '`',
+                ))
 
-            lindex = rindex + 1
-            rindex += per_page
+                lindex = rindex + 1
+                rindex += per_page
 
-        await EmbedSlide(items, message).send_and_wait(bot)
+            await EmbedSlide(items, message).send_and_wait(bot)
+        else:
+            await bot.feedback(message, navibot.WARNING, text=f"Nenhuma tag foi encontrada")
+
 
     elif "post" == args[1]:
         
@@ -71,7 +75,7 @@ async def command_ynd(bot, message, args, flags, handler):
 
             await EmbedSlide(items, message).send_and_wait(bot)
         else:
-            await bot.feedback(message, navibot.WARNING, text=f"Nenhuma imagem foi encontrada para o conjunto de tags:\n{tagstr}")
+            await bot.feedback(message, navibot.WARNING, text=f"Nenhuma imagem foi encontrada para o conjunto de tags:\n`{search}`")
     else:
         await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
 
