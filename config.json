@@ -4,7 +4,7 @@
 		"bot_prefix": ";;",
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
 		"bot_playing_delay": 120,
-		"bot_modules": ["modules.commands", "modules.commands_cli", "modules.commands_yandere"],
+		"bot_modules": ["modules.commands", "modules.commands_cli", "modules.commands_osu", "modules.commands_yandere"],
 		"log_path": ""
 	},
 	"commands": {
@@ -33,7 +33,7 @@
 			},
 			"ynd": {
 				"text": "Retorna buscas feitas utilizando a API yande.re, é possível efetuar buscas por tags e visualizar postagens contendo tais tags.",
-				"usage": "ynd <tag|post> [tag1] ..."
+				"usage": "ynd <tag|post> [search|tags]  ... [--page=[0-9]+] [--re]"
 			}
 		}
 	},
@@ -77,7 +77,7 @@
 		},
 		"yandere": {
 			"disable_nsfw": true,
-			"max_allowed_tag_output": 20,
+			"max_allowed_tags_per_page": 20,
 			"max_allowed_posts_per_page": 50,
 			"api_domain": "yande.re",
 			"api_gettagsummary": "/tag/summary.json",

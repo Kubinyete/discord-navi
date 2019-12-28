@@ -48,30 +48,48 @@ class NaviClient(discord.Client):
 			asyncio.get_running_loop().create_task(c.callback(self._bot, member))
 
 	def listen(self, event, callback, name=None):
-		try:
-			for nc in self._events[event]:
-				if name is None and (callback.__name__ == nc.name) or name == nc.name and callback == nc.callback:
-					return
-					
-			self._events[event].append(NaviCallback(callback, name=name))
-		except KeyError as e:
-			self._bot.handle_exception(e)
+		"""Atribui á um evento um novo callback a ser executado.
+		
+		Args:
+		    event (str): O nome do evento.
+		    callback (function): A coroutine a ser executada (encapsulada em um objeto NaviCallback)
+		    name (str, optional): O nome para tal callback, caso omitido, será utilizado o próprio nome da coroutine.
+		"""
+
+		for nc in self._events[event]:
+			# Evita a sobreposição de callbacks.
+			if name is None and (callback.__name__ == nc.name) or name == nc.name and callback == nc.callback:
+				return
+				
+		self._events[event].append(NaviCallback(callback, name=name))
 
 	def remove(self, event, callback, name=None):
-		try:
-			for nc in self._events[event]:
-				if name is None and (callback.__name__ == nc.name) or name == nc.name and callback == nc.callback:
-					self._events[event].remove(nc)
-		except KeyError as e:
-			self._bot.handle_exception(e)
+		"""Remove de um evento um callback.
+		
+		Args:
+		    event (str): O nome do evento.
+		    callback (function): A corutine a ser removida.
+		    name (None, optional): Procurar por um nome específico atrelado ao callback.
+		"""
+
+		for nc in self._events[event]:
+			if name is None and (callback.__name__ == nc.name and callback == nc.callback) or name == nc.name and callback == nc.callback:
+				self._events[event].remove(nc)
 
 	def remove_all_from(self, event):
-		try:
-			self._events[event] = []
-		except KeyError as e:
-			self._bot.handle_exception(e)
+		"""Remove todos os callbacks atribuidos a um evento.
+		
+		Args:
+		    event (str): O nome do evento.
+		"""
+
+		self._events[event] = []
+
 
 	def remove_all(self):
+		"""Remove todos os callbacks de todos os eventos.
+		"""
+
 		self._events = {
 			"on_ready": [],
 			"on_message": [],
@@ -84,18 +102,39 @@ class NaviClient(discord.Client):
 		}
 
 	def get_all_keys(self):
+		"""Retorna o nome de todos os eventos disponíveis.
+		
+		Returns:
+		    list(str): Os nomes de eventos.
+		"""
+
 		return self._events.keys()
 
 	def get_callbacks_from(self, event):
-		try:
-			return self._events[event]
-		except KeyError as e:
-			self._bot.handle_exception(e)
+		"""Retorna uma lista de callbacks associados a um evento.
+		
+		Args:
+		    event (str): O nome do evento.
+		
+		Returns:
+		    list(NaviCallback): A lista de callbacks encapsuladas em objetos NaviCallback
+		"""
+
+		return self._events[event]
 
 	def navi_start(self, token):
+		"""Inicia o bot em modo sincrono e permanence executando o loop internamente.
+		
+		Args:
+		    token (str): O token de autenticação do bot.
+		"""
+
 		self.run(token)
 
 	async def navi_stop(self):
+		"""Pede assíncronamente a parada do bot em execução.
+		"""
+
 		await self.logout()
 
 class NaviCallback:
@@ -118,10 +157,25 @@ class NaviRoutine(NaviCallback):
 		self._timespent = 0
 
 	def get_timespent(self):
+		"""Retorna uma tuple que representa o intervalo de execução da rotina.
+		
+		Returns:
+		    tuple(int, str): Uma tuple consistente de um valor inteiro e um tipo de unidade de tempo em forma de string.
+		"""
+
 		return self._timespent
 
 	@staticmethod
 	def interval_to_seconds(timespan):
+		"""Obtém o valor em segundos de um intervalo de tempo
+		
+		Args:
+		    timespan (tuple(int, str)): A tuple referente ao intervalo de tempo.
+		
+		Returns:
+		    int: O número de segundos.
+		"""
+
 		segundos = 0
 
 		value = timespan[0]
@@ -138,10 +192,23 @@ class NaviRoutine(NaviCallback):
 
 		return segundos
 
+
 	def get_timespan_seconds(self):
+		"""Retorna o número de segundos referente à este intervalo de tempo.
+		
+		Returns:
+		    int: O número de segundos.
+		"""
+
 		return self.interval_to_seconds(self.timespan)
 
 	async def run(self, bot):
+		"""Executa o callback associado a rotina, dependendo dos atribudos, esperando o término da rotina ou não.
+		
+		Args:
+		    bot (NaviBot): O bot responsável pela execução da rotina atual.
+		"""
+
 		if not self.waitfor:
 			asyncio.get_running_loop().create_task(self.callback(bot, self.kwargs))
 			self._timespent = 0
@@ -158,9 +225,18 @@ class NaviCommand(NaviCallback):
 		super().__init__(callback, name)
 
 		self.owneronly = owneronly
-		self.usage = "Informações de uso não disponíveis" if not usage else usage
+		self.usage = "Informações de uso não disponível" if not usage else usage
 		self.description = "Nenhuma descrição disponível" if not description else description
 
 	async def run(self, bot, message, args, flags):
+		"""Executa o callback associado a comando sem esperar pelo término.
+		
+		Args:
+		    bot (NaviBot): O bot responsável pela execução do comando atual.
+		    message (Message): A mensagem que originou este comando.
+		    args (list(str)): A lista de argumentos já separados.
+		    flags (dict): O dicionário de flags presentes.
+		"""
+
 		asyncio.get_running_loop().create_task(self.callback(bot, message, args, flags, self))
 		
