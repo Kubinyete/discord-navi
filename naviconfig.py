@@ -60,6 +60,9 @@ class ConfigManager:
 		Args:
 		    indice (str): O caminho que representa a chave de configuração.
 		    val (Any): O valor a ser atribuido.
+		
+		Returns:
+		    bool: A alteração foi feita.
 		"""
 
 		chaves = indice.split(".")
@@ -72,7 +75,10 @@ class ConfigManager:
 			for i in chaves[:-1]:
 				atual = atual[i]
 
-			atual[i] = val
+			atual[chaves[-1]] = val
+			return True
 		except KeyError:
 			self._bot.log.write(f"Não foi possível atribuir na chave de configurações '{indice}'", logtype=navilog.WARNING)
+
+		return False
 			

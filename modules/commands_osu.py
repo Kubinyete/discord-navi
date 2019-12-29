@@ -38,23 +38,19 @@ async def command_osu(bot, message, args, flags, handler):
 
 			items = [EmbedSlideItem(
 				title=f"{user['username']}",
-				description=f"""
-**#{user['pp_rank']}** (:flag_{user['country'].lower()}: **#{user['pp_country_rank']}**)
-**Join date:** {user['join_date']}
-**Playtime:** {int(user['total_seconds_played']) / 86400.0 if user['total_seconds_played'] is not None else 0:.2f} day(s)
-**Playcount:** {user['playcount']}
-**PP:** {user['pp_raw']}
-**Accuracy:** {float(user['accuracy']) if user['accuracy'] is not None else 0:.2f}
-**Level:** {float(user['level']) if user['level'] is not None else 0:.2f}
-
-*Ver em* [osu.ppy.sh](https://{domain}/u/{user['user_id']})
-""",
+				description=f"**#{user['pp_rank']}** (:flag_{user['country'].lower()}: **#{user['pp_country_rank']}**)",
 				url=f"https://{domain}/u/{user['user_id']}",
 				thumbnail=f"https://{assets}/{user['user_id']}",
-				author=f"Mova o slide para ver as melhores pontuações de {user['username']}"
+				author=f"Mova o slide para ver as melhores pontuações de {user['username']}",
+				fields=[
+					("Join date", user['join_date'], True),
+					("Playtime", f"{int(user['total_seconds_played']) / 86400.0 if user['total_seconds_played'] is not None else 0:.2f} day(s)", True),
+					("Playcount", user['playcount'], True),
+					("PP", user['pp_raw'], True),
+					("Accuracy", f"{float(user['accuracy']) if user['accuracy'] is not None else 0:.2f}", True),
+					("Level", f"{float(user['level']) if user['level'] is not None else 0:.2f}", True)
+				]
 			)]
-
-			bot.log.write(f"https://{assets}/{user['user_id']}")
 
 			user_best = await api.get_user_best_v2(user['user_id'], modestr=modestrv2, limit=bot.config.get("external.osu.max_allowed_best_scores_per_user"))
 
@@ -68,7 +64,7 @@ async def command_osu(bot, message, args, flags, handler):
 					image=beatmapset['covers']['card'],
 					thumbnail=f"{naviresources}/osu/rank_{score['rank']}.png",
 					fields=[
-						("Mods", ", ".join(score['mods']), True),
+						("Mods", ", ".join(score['mods']) if len(score['mods']) > 0 else "Not used", True),
 						("Accuracy", f"{score['accuracy'] * 100:.2f}", True),
 						("Combo", f"{score['max_combo']}x", True),
 						("PP", f"{score['pp']:.2f}pp ({score['weight']['pp']:.2f}pp {score['weight']['percentage']:.2f}%)", True),
@@ -79,9 +75,43 @@ async def command_osu(bot, message, args, flags, handler):
 			await EmbedSlide(items, message).send_and_wait(bot)
 		else:
 			await bot.feedback(message, navibot.WARNING, text="Não foi encontrado nenhum usuário com o nome informado")
-			return
+	# elif "beatmap" == args[1]:
+	# 	beatmapsets_search = await api.search_beatmapsets_v2("%20".join(args[2:]), modeid=modeid)
 
-	elif "beatmap" == args[1]:
-		pass
+	# 	domain = bot.config.get("external.osuv2.api_domain")
+		
+	# 	cursor = beatmapsets_search['cursor']
+	# 	beatmapsets = beatmapsets_search['beatmapsets']
+	# 	total = beatmapsets_search['total']
+
+	# 	if total > 0:
+	# 		items = []
+
+	# 		for beatmapset in beatmapsets:
+	# 			fields = []
+
+	# 			for beatmapdiff in beatmapset['beatmaps']:
+	# 				fields.append(
+	# 					(
+	# 						f"[{beatmapdiff['version']}] ({beatmapdiff['mode']})", 
+	# 						f"AR: {beatmapdiff['ar']}, OD: {beatmapdiff['accuracy']}, CS: {beatmapdiff['cs']}, HP: {beatmapdiff['drain']}, Stars: :star: {beatmapdiff['difficulty_rating']}"
+	# 					)
+	# 				)
+
+	# 			fields.append(("Creator", beatmapset['creator'] if beatmapset['creator'] else "Not available", True))
+	# 			fields.append(("BPM", beatmapset['bpm'] if beatmapset['bpm'] else "Not available", True))
+	# 			fields.append(("Source", beatmapset['source'] if beatmapset['source'] else "Not available", True))
+	# 			fields.append(("Download", f"[Download beatmapset](https://{domain}/beatmapsets/{beatmapset['id']}/download)" if not beatmapset['availability']['download_disabled'] else "This beatmapset is no longer available for download.", True))
+
+	# 			items.append(EmbedSlideItem(
+	# 				title=f"{beatmapset['title']} por {beatmapset['artist']}",
+	# 				url=f"https://{domain}/beatmapsets/{beatmapset['id']}",
+	# 				image=beatmapset['covers']['card'],
+	# 				fields=fields
+	# 			))
+
+	# 		await EmbedSlide(items, message).send_and_wait(bot)
+	# 	else:
+	# 		await bot.feedback(message, navibot.WARNING, text="Não foi encontrado nenhum beatmapset")
 	else:
 		await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)

@@ -13,40 +13,32 @@ async def callbackRemind(bot, kwargs):
 
 	task.enabled = False
 
-	await message.author.send("Olá <@{}>, estou te enviando um lembrete para: **{}**".format(message.author.id, remind_text))
+	await message.author.send(f"Olá <@{message.author.id}>, estou te enviando um lembrete para: **{remind_text}**")
 
 # @SECTION
 # Comandos disponibilizados por padrão pelo bot
 
-async def command_owner_helloworld(bot, message, args, flags, handler):
-    await bot.feedback(message, feedback=navibot.SUCCESS, title="Hello world!", text="Olá mundo!")
-
-async def command_owner_embedslide(bot, message, args, flags, handler):
-	if len(args) < 2:
-		await bot.feedback(message, feedback=navibot.ERROR, text="É preciso informar uma lista de URLs como argumentos")
+async def command_owner_setconfig(bot, message, args, flags, handler):
+	if len(args) < 3:
+		await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
 		return
-	
-	items = []
 
-	for url in args[1:]:
-		items.append(EmbedSlideItem(
-			title="Embed slide",
-			image=url,
-		))
-
-	await EmbedSlide(args[1:], message, "imageviewer").send_and_wait(bot)
+	if bot.config.set(args[1], " ".join(args[2:])):
+		await bot.feedback(message, navibot.SUCCESS)
+	else:
+		await bot.feedback(message, navibot.ERROR, text=f"A chave **{args[1]}**' não foi encontrada")
 
 async def command_help(bot, message, args, flags, handler):
 	if len(args) < 2:
 		helptext = "**Comandos disponíveis**\n\n"
 
 		for key in bot.commands.get_commands().keys():
-			helptext = helptext + "**{}**\n`{}`\n\n".format(key, bot.commands.get(key).usage)
+			helptext += f"**{key}**\n`{bot.commands.get(key).usage}`\n\n"
 	else:
 		handler = bot.commands.get(args[1])
 
 		if handler:
-			helptext = "**{}**\n`Uso: {}`\n\n{}".format(handler.name, handler.usage, handler.description)
+			helptext = f"**{handler.name}**\n`Uso: {handler.usage}`\n\n{handler.description}"
 		else:
 			await bot.feedback(message, feedback=navibot.WARNING, text="O comando '{}' não existe".format(args[1]))
 			return
@@ -97,13 +89,14 @@ async def command_remind(bot, message, args, flags, handler):
 		await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
 		return
 
-	tarefa_str = "{}_reminds".format(str(message.author.id))
+	tarefa_str = f"{message.author.id}_reminds"
+
+	tarefas = bot.tasks.get(tarefa_str)
 
 	if "list" in flags:
 		list_msg = ""
 
-		tarefas = bot.tasks.get(tarefa_str)
-		if len(tarefas) > 0:
+		if tarefas:
 			for i in range(len(tarefas)):
 				data = tarefas[i].kwargs["date"] + datetime.timedelta(seconds=tarefas[i].get_timespan_seconds())
 				list_msg += "[{}] `{}`, registrado para {} às {}\n".format(i, tarefas[i].kwargs["remind_text"], data.strftime(r"%d/%m/%Y"), data.strftime(r"%H:%M:%S"))
@@ -111,11 +104,8 @@ async def command_remind(bot, message, args, flags, handler):
 			list_msg += "Você não registrou nenhum lembrete até o momento"
 
 		await bot.feedback(message, navibot.SUCCESS, text=list_msg, title="Lembretes ativos")
-		return
 	elif "remove" in flags:
-		tarefas = bot.tasks.get(tarefa_str)
-
-		if len(tarefas) > 0:
+		if tarefas:
 			try:
 				tarefasel = tarefas[int(flags["remove"])]
 				bot.tasks.cancel(tarefasel, tarefa_str)
@@ -127,35 +117,33 @@ async def command_remind(bot, message, args, flags, handler):
 				await bot.feedback(message, navibot.WARNING, text="O número do lembrete não existe")
 		else:
 			await bot.feedback(message, navibot.INFO, text="Você não registrou nenhum lembrete até o momento")
-		return
-
-	segundos = 0
-
-	try:
-		for tm in re.findall("[0-9]+[hms]", flags["time"]):
-			every = re.search("^[0-9]+", tm)
-			if every != None:
-				every = int(every[0])
-			unit = re.search("(h|m|s)$", tm)
-			if unit != None:
-				unit = unit[0]
-
-			segundos += NaviRoutine.interval_to_seconds((every, unit))
-	except ValueError:
-		pass
-
-	if segundos == 0:
-		await bot.feedback(message, navibot.WARNING, text="O argumento '--time' não está em um formato valido")
-		return
 	else:
-		limite = bot.config.get("commands.descriptions.{}.max_allowed_per_user".format(handler.name))
+		segundos = 0
 
-		if len(bot.tasks.get(tarefa_str)) >= limite:
-			await bot.feedback(message, navibot.WARNING, text="Você não pode registrar mais lembretes, pois atingiu o limite máximo de {}".format(limite))
+		try:
+			for tm in re.findall("[0-9]+[hms]", flags["time"]):
+				every = re.search("^[0-9]+", tm)
+				if every != None:
+					every = int(every[0])
+				unit = re.search("(h|m|s)$", tm)
+				if unit != None:
+					unit = unit[0]
+
+				segundos += NaviRoutine.interval_to_seconds((every, unit))
+		except ValueError:
+			pass
+
+		if segundos == 0:
+			await bot.feedback(message, navibot.WARNING, text="O argumento '--time' não está em um formato valido")
 			return
 		else:
-			task = NaviRoutine(callbackRemind, timespan=(segundos, "s"), waitfor=True, kwargs={"remind_text": " ".join(args[1:]), "date": datetime.datetime.now(), "message": message})
-			task.kwargs["task"] = task
+			limite = bot.config.get("commands.descriptions.{}.max_allowed_per_user".format(handler.name))
 
-			bot.tasks.schedule(task, key=tarefa_str, append=True)
-			await bot.feedback(message, navibot.SUCCESS, text="O lembrete **{}** foi registrado".format(task.kwargs["remind_text"]))
+			if tarefas and len(tarefas) >= limite:
+				await bot.feedback(message, navibot.WARNING, text="Você não pode registrar mais lembretes, pois atingiu o limite máximo de {}".format(limite))
+			else:
+				task = NaviRoutine(callbackRemind, timespan=(segundos, "s"), waitfor=True, kwargs={"remind_text": " ".join(args[1:]), "date": datetime.datetime.now(), "message": message})
+				task.kwargs["task"] = task
+
+				bot.tasks.schedule(task, key=tarefa_str, append=True)
+				await bot.feedback(message, navibot.SUCCESS, text="O lembrete **{}** foi registrado".format(task.kwargs["remind_text"]))

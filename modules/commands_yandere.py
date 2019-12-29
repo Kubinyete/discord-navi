@@ -63,7 +63,7 @@ async def command_ynd(bot, message, args, flags, handler):
                 if not disablensfw or post['rating'] == "s":
                     items.append(EmbedSlideItem(
                         title=f"{post['id']}",
-                        url=f"https://{domain}{postshow}{post['id']}",
+                        url=f"https://{domain}/{postshow}{post['id']}",
                         description=f"""
     `{post['tags']}`
     Ver [amostra]({post['sample_url']}) ({post['sample_width']}x{post['sample_height']}) ({naviuteis.bytes_string(post['sample_file_size'])})

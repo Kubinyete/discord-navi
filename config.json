@@ -29,7 +29,7 @@
 			},
 			"osu": {
 				"text": "Retorna um perfil osu! de determinado usuário, o modo de jogo padrão é 'standard'",
-				"usage": "osu <profile|beatmap> <usuario> [--mode=std|taiko|ctb|mania]"
+				"usage": "osu profile <usuario> [--mode=std|taiko|ctb|mania]"
 			},
 			"ynd": {
 				"text": "Retorna buscas feitas utilizando a API yande.re, é possível efetuar buscas por tags e visualizar postagens contendo tais tags.",
@@ -73,16 +73,15 @@
 			"github_resources_url": "https://raw.githubusercontent.com/Kubinyete/discord-navi/dev/resources"
 		},
 		"osu": {
-			"max_allowed_best_scores_per_user": 8,
+			"max_allowed_best_scores_per_user": 10,
 			"api_key": "OSU_API_KEY",
 			"api_domain": "osu.ppy.sh",
 			"api_assets": "a.ppy.sh",
 			"api_getuser": "api/get_user",
 			"api_getuserbest": "api/get_user_best"
 		},
-		"osuv2": {
+		"osuweb": {
 			"api_domain": "osu.ppy.sh",
-			"api_assets": "assets.ppy.sh",
 			"api_searchbeatmapsets": "beatmapsets/search",
 			"api_usersscoresbest": "users/{id}/scores/best"
 		},

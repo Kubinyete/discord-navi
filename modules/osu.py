@@ -41,18 +41,10 @@ class OsuApi:
         })
 
     async def get_user_best_v2(self, userid, modestr="osu", limit=10):
-        domain = self._bot.config.get("external.osuv2.api_domain")
-        endpoint = self._bot.config.get("external.osuv2.api_usersscoresbest").format(id=userid)
+        domain = self._bot.config.get("external.osuweb.api_domain")
+        endpoint = self._bot.config.get("external.osuweb.api_usersscoresbest").format(id=userid)
         
         return await self._bot.http.fetch_json(f"https://{domain}/{endpoint}", params={
             "mode": modestr, 
             "limit": limit
-        })
-
-    async def search_beatmapsets_v2(self, search):
-        domain = self._bot.config.get("external.osuv2.api_domain")
-        endpoint = self._bot.config.get("external.osu.api_searchbeatmapsets")
-
-        return await self._bot.http.fetch_json(f"https://{domain}/{endpoint}", params={
-            "q": search
         })
