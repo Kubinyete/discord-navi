@@ -18,61 +18,39 @@ async def callbackRemind(bot, kwargs):
 # @SECTION
 # Comandos disponibilizados por padrão pelo bot
 
-async def command_owner_setconfig(bot, message, args, flags, handler):
-	if len(args) < 3:
-		await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
-		return
-
-	if bot.config.set(args[1], " ".join(args[2:])):
-		await bot.feedback(message, navibot.SUCCESS)
-	else:
-		await bot.feedback(message, navibot.ERROR, text=f"A chave **{args[1]}**' não foi encontrada")
-
 async def command_help(bot, message, args, flags, handler):
 	if len(args) < 2:
 		helptext = "**Comandos disponíveis**\n\n"
 
 		for key in bot.commands.get_commands().keys():
-			helptext += f"**{key}**\n`{bot.commands.get(key).usage}`\n\n"
+			handler = bot.commands.get(key)
+
+			if bot.is_owner(message.author) or not handler.owneronly:
+				if isinstance(handler.usage, list):
+					usagef = "\n".join([f"`{key} {i}`" for i in handler.usage])
+				else:
+					usagef = f"`{key} {handler.usage}`"
+
+				helptext += f"**{key}**\n{usagef}\n\n"
 	else:
 		handler = bot.commands.get(args[1])
 
-		if handler:
-			helptext = f"**{handler.name}**\n`Uso: {handler.usage}`\n\n{handler.description}"
+		if handler and (bot.is_owner(message.author) or not handler.owneronly):
+			if isinstance(handler.usage, list):
+				usagef = "\n".join([f"`{key} {i}`" for i in handler.usage])
+			else:
+				usagef = f"{key} `{handler.usage}`"
+
+			helptext = f"**{handler.name}**\n{usagef}\n\n{handler.description}"
 		else:
 			await bot.feedback(message, feedback=navibot.WARNING, text="O comando '{}' não existe".format(args[1]))
 			return
 
 	await bot.feedback(message, feedback=navibot.SUCCESS, text=helptext)
 
-async def command_embed(bot, message, args, flags, handler):
-	if len(args) < 2 and (not "title" in flags and not "img" in flags):
-		await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
-		return
-
-	title = ""
-	description = ""
-	image = ""
-
-	if len(args) > 1:
-		description = " ".join(args[1:])
-
-	if "title" in flags:
-		title = flags["title"]
-
-	if "img" in flags:
-		image = flags["img"]
-
-	embed = discord.Embed(title=title, description=description, color=discord.Colour.purple())
-	embed.set_image(url=image)
-	embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
-
-	await message.channel.send(embed=embed)
-	await bot.feedback(message, navibot.SUCCESS)
-
 async def command_avatar(bot, message, args, flags, handler):
 	if len(message.mentions) != 1:
-		await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
+		await bot.feedback(message, navibot.COMMAND_INFO, usage=handler)
 		return
 
 	user = message.mentions[0]
@@ -86,11 +64,10 @@ async def command_avatar(bot, message, args, flags, handler):
 
 async def command_remind(bot, message, args, flags, handler):
 	if len(args) < 2 and (not "remove" in flags and not "list" in flags) or len(args) > 1 and not "time" in flags:
-		await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
+		await bot.feedback(message, navibot.COMMAND_INFO, usage=handler)
 		return
 
 	tarefa_str = f"{message.author.id}_reminds"
-
 	tarefas = bot.tasks.get(tarefa_str)
 
 	if "list" in flags:
@@ -135,7 +112,6 @@ async def command_remind(bot, message, args, flags, handler):
 
 		if segundos == 0:
 			await bot.feedback(message, navibot.WARNING, text="O argumento '--time' não está em um formato valido")
-			return
 		else:
 			limite = bot.config.get("commands.descriptions.{}.max_allowed_per_user".format(handler.name))
 

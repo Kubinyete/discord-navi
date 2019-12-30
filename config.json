@@ -4,7 +4,13 @@
 		"bot_prefix": ";;",
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
 		"bot_playing_delay": 120,
-		"bot_modules": ["modules.commands", "modules.commands_cli", "modules.commands_osu", "modules.commands_yandere"],
+		"bot_modules": [
+			"modules.commands", 
+			"modules.commands_cli", 
+			"modules.commands_osu", 
+			"modules.commands_yandere",
+			"modules.commands_shell"
+		],
 		"log_path": ""
 	},
 	"commands": {
@@ -12,28 +18,35 @@
 		"descriptions": {
 			"help": {
 				"text": "Permite visualizar todos os comandos e informações do bot, especificar um comando como parâmetro mostrará mais informações detalhadas de uso.",
-				"usage": "help [comando]"
+				"usage": "[comando]"
 			},
 			"avatar": {
 				"text": "Retorna a imagem do usuário mencionado.",
-				"usage": "avatar <@Usuario>"
-			},
-			"embed": {
-				"text": "Retorna uma mensagem do tipo 'embed' de acordo com os parâmetros passados.",
-				"usage": "embed [descricao] [--title=texto] [--img=url]"
+				"usage": "@Usuario"
 			},
 			"remind": {
 				"max_allowed_per_user": 3,
 				"text": "Registra um lembrete após o tempo especificado, envia o lembrete através de um canal privado, o parâmetro '--time' deverá ser informado juntamente com um número e unidade de tempo (Ex: --time=10s) onde: s=segundos, m=minutos e h=horas.",
-				"usage": "remind [--list] [--remove=id] <titulo> [--time=1h30m15s]"
+				"usage": [
+					"<titulo> --time=1h30m15s",
+					"--list",
+					"--remove=id"
+				]
+			},
+			"bc": {
+				"text": "Retorna o resultado da expressão informada (Ex: 2 * 4 / 2).",
+				"usage": "<expressao>"
 			},
 			"osu": {
 				"text": "Retorna um perfil osu! de determinado usuário, o modo de jogo padrão é 'standard'",
-				"usage": "osu profile <usuario> [--mode=std|taiko|ctb|mania]"
+				"usage": "profile <usuario> [--mode=std|taiko|ctb|mania]"
 			},
-			"ynd": {
+			"yandere": {
 				"text": "Retorna buscas feitas utilizando a API yande.re, é possível efetuar buscas por tags e visualizar postagens contendo tais tags.",
-				"usage": "ynd <tag|post> [search|tags]  ... [--page=[0-9]+] [--re]"
+				"usage": [
+					"tag [busca] [--re]",
+					"post [tag1] [tag2] [tagN]... [--page=[0-9]+]"
+				]
 			}
 		}
 	},
@@ -45,19 +58,19 @@
 					"usage": "help"
 				},
 				"echo": {
-					"usage": "echo <texto>"
+					"usage": "echo texto texto2 textoN..."
 				},
 				"context": {
-					"usage": "context [--show] [--clear] <id> [-u|g|c]"
+					"usage": "context id [-u] [-g] [-c] [--show] [--clear]"
 				},
 				"say": {
-					"usage": "say <texto>"
+					"usage": "say texto1 texto2 textoN..."
 				},
 				"task": {
-					"usage": "task [--list]"
+					"usage": "task --list"
 				},
 				"event": {
-					"usage": "event [--list]"
+					"usage": "event --list"
 				},
 				"reload": {
 					"usage": "reload"

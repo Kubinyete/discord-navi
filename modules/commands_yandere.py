@@ -7,9 +7,9 @@ from modules.yandere import YandereApi
 async def callbackCreateYandereApiInstance(bot):
     await YandereApi.get_instance(bot).load_tag_summary()
 
-async def command_ynd(bot, message, args, flags, handler):
+async def command_yandere(bot, message, args, flags, handler):
     if len(args) < 2:
-        await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
+        await bot.feedback(message, navibot.COMMAND_INFO, usage=handler)
         return
 
     api = YandereApi.get_instance()
@@ -77,7 +77,7 @@ async def command_ynd(bot, message, args, flags, handler):
         else:
             await bot.feedback(message, navibot.WARNING, text=f"Nenhuma imagem foi encontrada para o conjunto de tags:\n`{search}`")
     else:
-        await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
+        await bot.feedback(message, navibot.COMMAND_INFO, usage=handler)
 
 LISTEN = {
     "on_ready": [callbackCreateYandereApiInstance]

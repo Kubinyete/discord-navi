@@ -7,7 +7,7 @@ from modules.osu import OsuApi
 
 async def command_osu(bot, message, args, flags, handler):
 	if len(args) < 3:
-		await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
+		await bot.feedback(message, navibot.COMMAND_INFO, usage=handler)
 		return
 
 	api = OsuApi.get_instance(bot)
@@ -114,4 +114,4 @@ async def command_osu(bot, message, args, flags, handler):
 	# 	else:
 	# 		await bot.feedback(message, navibot.WARNING, text="Não foi encontrado nenhum beatmapset")
 	else:
-		await bot.feedback(message, navibot.COMMAND_INFO, text=handler.usage)
+		await bot.feedback(message, navibot.COMMAND_INFO, usage=handler)

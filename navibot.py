@@ -9,6 +9,7 @@ Attributes:
 """
 
 import asyncio
+#import uvloop
 import discord
 import platform
 import sys
@@ -395,6 +396,8 @@ class NaviBot:
 			termios.tcsetattr(sys.stdin, termios.TCSANOW, cli_stdin_current_attr)
 
 		try:
+			#uvloop.install()
+
 			self.client.navi_start(self.config.get("global.bot_token"))
 		except Exception as e:
 			self.handle_exception(e)
@@ -415,7 +418,7 @@ class NaviBot:
 	# @SECTION
 	# Funções auxiliares dos comandos do bot
 	
-	async def feedback(self, message, feedback=SUCCESS, title=None, text=None, code=False, exception=None):
+	async def feedback(self, message, feedback=SUCCESS, title=None, text=None, code=False, exception=None, usage=None):
 		"""Devolve uma resposta padrão para uma ação do bot.
 		
 		Args:
@@ -425,9 +428,16 @@ class NaviBot:
 		    text (str, optional): O texto a ser escrito no embed.
 		    code (bool, str, optional): Define se será utilizado um bloco de código para escrever o texto definido em text.
 		    exception (Exception, optional): Devolve uma resposta padrão para o usuário caso ocorra uma exception, imprimindo na CLI também.
+		    usage (NaviCommand, optional): O handler contendo a informação de uso.
 		"""
 
 		await message.add_reaction(feedback_string(feedback))
+
+		if usage != None:
+			if isinstance(usage.usage, list):
+				text = "\n".join([f"`{usage.name} {i}`" for i in usage.usage])
+			else:
+				text = f"`{usage.name} {usage.usage}`"
 
 		if text != None:
 			embed = None

@@ -74,7 +74,7 @@ class LogManager:
 		elif isinstance(self._bot.cli_context, discord.Guild):
 			return "[{}]".format(self._bot.cli_context.name)
 		else:
-			return ""
+			return "NaviBot"
 
 	def set_path(self, path):
 		"""Atualiza o caminho do arquivo de log.
