@@ -73,7 +73,10 @@ async def command_yandere(bot, message, args, flags, handler):
                         image=f"{post['preview_url']}",
                     ))
 
-            await EmbedSlide(items, message).send_and_wait(bot)
+            if len(items) > 0:
+                await EmbedSlide(items, message).send_and_wait(bot)
+            else:
+                await bot.feedback(message, navibot.WARNING, text=f"Nenhuma imagem pode ser exibida devido as configurações de conteúdo.")
         else:
             await bot.feedback(message, navibot.WARNING, text=f"Nenhuma imagem foi encontrada para o conjunto de tags:\n`{search}`")
     else:

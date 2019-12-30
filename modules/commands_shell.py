@@ -23,8 +23,6 @@ async def command_bc(bot, message, args, flags, handler):
     try:
         streams = []
 
-        bot.log.write(f"dados = scale=4;{expr}")
-
         await asyncio.wait_for(
             run_process(process, bytes(f"scale=4;\n{expr}\n", encoding="utf-8"), streams)
         , timeout=5)

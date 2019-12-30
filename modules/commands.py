@@ -1,6 +1,7 @@
 import discord
 import re
 import datetime
+import random
 import navibot
 from naviclient import NaviRoutine
 from navibot import EmbedSlideItem
@@ -37,16 +38,35 @@ async def command_help(bot, message, args, flags, handler):
 
 		if handler and (bot.is_owner(message.author) or not handler.owneronly):
 			if isinstance(handler.usage, list):
-				usagef = "\n".join([f"`{key} {i}`" for i in handler.usage])
+				usagef = "\n".join([f"`{args[1]} {i}`" for i in handler.usage])
 			else:
-				usagef = f"{key} `{handler.usage}`"
+				usagef = f"{args[1]} `{handler.usage}`"
 
 			helptext = f"**{handler.name}**\n{usagef}\n\n{handler.description}"
 		else:
-			await bot.feedback(message, feedback=navibot.WARNING, text="O comando '{}' não existe".format(args[1]))
+			await bot.feedback(message, feedback=navibot.WARNING, text=f"O comando '{args[1]}' não existe.")
 			return
 
 	await bot.feedback(message, feedback=navibot.SUCCESS, text=helptext)
+
+async def command_roll(bot, message, args, flags, handler):
+	rollmin = 1
+	rollmax = 6
+
+	try:
+		if len(args) > 2:
+			rollmin = int(args[1])
+			rollmax = int(args[2])
+		elif len(args) > 1:
+			rollmax = int(args[1])
+	except ValueError:
+		await bot.feedback(message, feedback=navibot.WARNING, text="É preciso informar números válidos.")
+		return
+
+	if rollmax < rollmin:
+		await bot.feedback(message, feedback=navibot.WARNING, text=f"A faixa de valores {rollmin} - {rollmax} informada precisa ser válida.")
+	else:
+		await bot.feedback(message, feedback=navibot.SUCCESS, text=f"**{message.author.name}** girou o número {random.randint(rollmin, rollmax)}.")
 
 async def command_avatar(bot, message, args, flags, handler):
 	if len(message.mentions) != 1:

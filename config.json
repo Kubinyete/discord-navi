@@ -20,6 +20,13 @@
 				"text": "Permite visualizar todos os comandos e informações do bot, especificar um comando como parâmetro mostrará mais informações detalhadas de uso.",
 				"usage": "[comando]"
 			},
+			"roll": {
+				"text": "Retorna um número aleatório entre o valor mínimo informado (padrão é 1) e o máximo (padrão é 6).",
+				"usage": [
+					"[max]",
+					"[min] [max]"
+				]
+			},
 			"avatar": {
 				"text": "Retorna a imagem do usuário mencionado.",
 				"usage": "@Usuario"
