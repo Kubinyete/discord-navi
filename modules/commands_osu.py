@@ -2,7 +2,7 @@ import discord
 import asyncio
 import navibot
 from navibot import EmbedSlide
-from navibot import EmbedSlideItem
+from navibot import EmbedItem
 from modules.osu import OsuApi
 
 async def command_osu(bot, message, args, flags, handler):
@@ -36,7 +36,7 @@ async def command_osu(bot, message, args, flags, handler):
 			assets = bot.config.get("external.osu.api_assets")
 			naviresources = bot.config.get("external.navi.github_resources_url")
 
-			items = [EmbedSlideItem(
+			items = [EmbedItem(
 				title=f"{user['username']}",
 				description=f"**#{user['pp_rank']}** (:flag_{user['country'].lower()}: **#{user['pp_country_rank']}**)",
 				url=f"https://{domain}/u/{user['user_id']}",
@@ -58,7 +58,7 @@ async def command_osu(bot, message, args, flags, handler):
 				beatmap = score['beatmap']
 				beatmapset = score['beatmapset']
 
-				items.append(EmbedSlideItem(
+				items.append(EmbedItem(
 					title=f"{beatmapset['title']} por {beatmapset['artist']} [{beatmap['version']}]",
 					url=beatmap['url'],
 					image=beatmapset['covers']['card'],
@@ -103,7 +103,7 @@ async def command_osu(bot, message, args, flags, handler):
 	# 			fields.append(("Source", beatmapset['source'] if beatmapset['source'] else "Not available", True))
 	# 			fields.append(("Download", f"[Download beatmapset](https://{domain}/beatmapsets/{beatmapset['id']}/download)" if not beatmapset['availability']['download_disabled'] else "This beatmapset is no longer available for download.", True))
 
-	# 			items.append(EmbedSlideItem(
+	# 			items.append(EmbedItem(
 	# 				title=f"{beatmapset['title']} por {beatmapset['artist']}",
 	# 				url=f"https://{domain}/beatmapsets/{beatmapset['id']}",
 	# 				image=beatmapset['covers']['card'],

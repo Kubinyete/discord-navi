@@ -4,7 +4,7 @@ import datetime
 import random
 import navibot
 from naviclient import NaviRoutine
-from navibot import EmbedSlideItem
+from navibot import EmbedItem
 from navibot import EmbedSlide
 
 async def callbackRemind(bot, kwargs):

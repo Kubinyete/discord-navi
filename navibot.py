@@ -17,6 +17,8 @@ import tty
 import termios
 import importlib
 import traceback
+import math
+import naviuteis
 import navilog
 from naviclient import NaviCommand
 from naviclient import NaviClient
@@ -58,7 +60,78 @@ def feedback_string(feedback):
 	else:
 		return r"ℹ"
 
-class EmbedSlideItem:
+class Poll:
+	def __init__(self, question, answers, request_message, timeout=60):
+		self._question = question
+		self._answers = answers
+		self._timeout = timeout
+		self._request_message = request_message
+		self._displaying_message = None
+
+		self.votes = {}
+
+	def generate_current_embed(self):
+		fanswers = "\n".join(
+			[f"**{chr(i)}** - {self._answers[i - 65]}" for i in range(65, 65 + len(self._answers))]
+		)
+
+		item = EmbedItem(
+			description=fanswers,
+			title=self._question,
+			author=f"{self._request_message.author.name} iniciou uma votação"
+		)
+
+		embed = item.generate()
+		embed.set_footer(text=f"{self._request_message.author.name} - Essa votação será finalizada em {naviuteis.seconds_string(self._timeout)}", icon_url=self._request_message.author.avatar_url_as(size=32))
+
+		return embed
+
+	def get_results(self):
+		results = [0 for i in range(len(self._answers))]
+
+		for vote in self.votes.values():
+			results[vote] += 1
+
+		return results
+
+	async def callbackPollReact(self, bot, reaction, user):
+		pass
+
+	async def send_and_wait(self, bot):
+		embed = self.generate_current_embed()
+
+		self._displaying_message = await self._request_message.channel.send(embed=embed)
+
+		firstunicode = ord(r"🇦")
+		for i in range(len(self._answers)):
+			await self._displaying_message.add_reaction(chr(firstunicode + i))
+
+		callback_name = f"callbackPollReactFor{self._displaying_message.id}"
+
+		bot.client.listen("on_reaction_add", self.callbackPollReact, callback_name)
+
+		await asyncio.sleep(self._timeout)
+
+		results = self.get_results()
+		gmaxresult = max(results)
+		gmaxchars = 20
+		gchartouse = "."
+
+		description = "\n".join(
+			[f"**{chr(65 + i)}** {gchartouse * (math.floor(gmaxchars * (results[i] / gmaxresult)))}> {results[i]}" for i in range(len(results))]
+		)
+
+		item = EmbedItem(
+			description=description,
+			title=self._question,
+			author=f"Resultados da votação"
+		)
+
+		await self._request_message.channel.send(embed=item.generate())
+
+		bot.client.remove("on_reaction_add", self.callbackPollReact, callback_name)
+
+class EmbedItem:
 	def __init__(self, description="", title="", url="", color=discord.Colour.purple(), image="", thumbnail="", author=(), fields=[]):
 		"""Define um item de uma coleção de itens de slide, possui propriedades do objeto Embed do discord.
 		
@@ -82,12 +155,44 @@ class EmbedSlideItem:
 		self.author = author
 		self.fields = fields
 
+	def generate(self):
+		embed = discord.Embed()
+		embed.description = self.description
+		embed.title = self.title
+		embed.url = self.url
+		embed.colour = self.color
+
+		if len(self.image) > 0:
+			embed.set_image(url=self.image)
+			
+		if len(self.thumbnail):
+			embed.set_thumbnail(url=self.thumbnail)
+
+		if isinstance(self.author, tuple):
+			if len(self.author) > 0:
+				if len(self.author) == 2:
+					embed.set_author(name=self.author[0], url=self.author[1])
+				elif len(self.author) == 3:
+					embed.set_author(name=self.author[0], url=self.author[1], icon_url=self.author[2])
+				else:
+					embed.set_author(name=self.author[0])
+		elif isinstance(self.author, str):
+			embed.set_author(name=self.author)
+
+		for field in self.fields:
+			if len(field) == 3:
+				embed.add_field(name=field[0], value=field[1], inline=field[2])
+			else:
+				embed.add_field(name=field[0], value=field[1], inline=False)
+
+		return embed
+
 class EmbedSlide:
 	def __init__(self, items, request_message, start=0, timeout=60, right_reaction=r"▶️", left_reaction=r"◀️"):
 		"""Define um Embed navegável através de reações do usuário.
 		
 		Args:
-		    items (list(EmbedSlideItem)): Os itens a serem mostrados, cada item é um EmbedSlideItem.
+		    items (list(EmbedItem)): Os itens a serem mostrados, cada item é um EmbedItem.
 		    request_message (TYPE): A mensagem que originou o pedido do slide, será utilizado para enviar o embed.
 		    start (int, optional): Inicia na posição informada.
 		    timeout (int, optional): Define em segundos quanto tempo esperar por atividade de uso.
@@ -148,10 +253,10 @@ class EmbedSlide:
 			self._index = len(self._items) - 1
 
 	def get_current_item(self):
-		"""Retorna o EmbedSlideItem atual.
+		"""Retorna o EmbedItem atual.
 		
 		Returns:
-		    EmbedSlideItem: Item atual.
+		    EmbedItem: Item atual.
 		"""
 
 		return self._items[self._index]
@@ -163,37 +268,7 @@ class EmbedSlide:
 		    Embed: O embed a ser enviado.
 		"""
 
-		item = self.get_current_item()
-
-		embed = discord.Embed()
-		embed.description = item.description
-		embed.title = item.title
-		embed.url = item.url
-		embed.colour = item.color
-
-		if len(item.image) > 0:
-			embed.set_image(url=item.image)
-			
-		if len(item.thumbnail):
-			embed.set_thumbnail(url=item.thumbnail)
-
-		if isinstance(item.author, tuple):
-			if len(item.author) > 0:
-				if len(item.author) == 2:
-					embed.set_author(name=item.author[0], url=item.author[1])
-				elif len(item.author) == 3:
-					embed.set_author(name=item.author[0], url=item.author[1], icon_url=item.author[2])
-				else:
-					embed.set_author(name=item.author[0])
-		elif isinstance(item.author, str):
-			embed.set_author(name=item.author)
-
-		for field in item.fields:
-			if len(field) == 3:
-				embed.add_field(name=field[0], value=field[1], inline=field[2])
-			else:
-				embed.add_field(name=field[0], value=field[1], inline=False)
-
+		embed = self.get_current_item().generate()
 		embed.set_footer(text=f"{self._request_message.author.name} - {self._index + 1}/{len(self._items)}", icon_url=self._request_message.author.avatar_url_as(size=32))
 
 		return embed

@@ -1,7 +1,7 @@
 import navibot
 import naviuteis
 from navibot import EmbedSlide
-from navibot import EmbedSlideItem
+from navibot import EmbedItem
 from modules.yandere import YandereApi
 
 async def callbackCreateYandereApiInstance(bot):
@@ -26,7 +26,7 @@ async def command_yandere(bot, message, args, flags, handler):
             while lindex < len(tags):
                 current_slice = tags[lindex:rindex]
 
-                items.append(EmbedSlideItem(
+                items.append(EmbedItem(
                     title="Resultados da busca",
                     description='`' + "\n".join(current_slice) + '`',
                 ))
@@ -61,7 +61,7 @@ async def command_yandere(bot, message, args, flags, handler):
 
             for post in result:
                 if not disablensfw or post['rating'] == "s":
-                    items.append(EmbedSlideItem(
+                    items.append(EmbedItem(
                         title=f"{post['id']}",
                         url=f"https://{domain}/{postshow}{post['id']}",
                         description=f"""

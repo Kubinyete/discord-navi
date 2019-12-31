@@ -180,3 +180,35 @@ def bytes_string(bytes):
 
 	return f"{bytes:.0f} {sizes[i]}"
 	
+def seconds_string(seconds):
+	"""Devolve uma string de representação de acordo com a quantidade em segundos passado.
+	
+	Args:
+	    seconds (int): Segundos.
+	
+	Returns:
+	    str: A string de representação.
+	"""
+
+	d = math.floor(seconds / 86400)
+	seconds -= d * 86400
+
+	h = math.floor(seconds / 3600)
+	seconds -= h * 3600
+	
+	m = math.floor(seconds / 60)
+	seconds -= m * 60
+
+	output = []
+
+	if d >= 1:
+		output.append(f"{d} dia(s)")
+	if h >= 1:
+		output.append(f"{h} hora(s)")
+	if m >= 1:
+		output.append(f"{h} minuto(s)")
+		
+	output.append(f"{seconds} segundo(s)")
+	
+	return ", ".join(output)
+	
