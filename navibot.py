@@ -9,7 +9,6 @@ Attributes:
 """
 
 import asyncio
-#import uvloop
 import discord
 import platform
 import sys
@@ -60,6 +59,20 @@ def feedback_string(feedback):
 	else:
 		return r"ℹ"
 
+async def get_last_user_from(reaction):
+	"""Retorna o ultimo usuário que deu a reação atual.
+	
+	Args:
+		reaction (Reaction): A reação do discord.
+	
+	Returns:
+		User: O último usuário que deu a reação informada.
+	"""
+
+	return (
+		await reaction.users().flatten()
+	)[-1]
+
 class Poll:
 	def __init__(self, question, answers, request_message, timeout=60):
 		self._question = question
@@ -68,7 +81,8 @@ class Poll:
 		self._request_message = request_message
 		self._displaying_message = None
 
-		self.votes = {}
+		self._votes = {}
+		self._finished = False
 
 	def generate_current_embed(self):
 		fanswers = "\n".join(
@@ -77,7 +91,7 @@ class Poll:
 
 		item = EmbedItem(
 			description=fanswers,
-			title=self._question,
+			title=f'"{self._question}"',
 			author=f"{self._request_message.author.name} iniciou uma votação"
 		)
 
@@ -86,16 +100,54 @@ class Poll:
 
 		return embed
 
+	def generate_result_embed(self):
+		results = self.get_results()
+		total = sum(results)
+
+		if total > 0:
+			description = "\n".join(
+				[f"**{chr(65 + i)}** - {self._answers[i]}\n{results[i]} voto(s)" for i in range(len(results))]
+			)
+		else:
+			description = f"A votação foi finalizada sem nenhum voto."
+
+		item = EmbedItem(
+			description=description,
+			title=f'"{self._question}"',
+			author=f"Resultados da votação"
+		)
+
+		embed = item.generate()
+		embed.set_footer(text=f"{self._request_message.author.name} - {total} voto(s)", icon_url=self._request_message.author.avatar_url_as(size=32))
+
+		return item.generate()
+
 	def get_results(self):
 		results = [0 for i in range(len(self._answers))]
 
-		for vote in self.votes.values():
+		for vote in self._votes.values():
 			results[vote] += 1
 
 		return results
 
 	async def callbackPollReact(self, bot, reaction, user):
-		pass
+		if self._finished or reaction.message.id != self._displaying_message.id or await get_last_user_from(reaction) == bot.client.user:
+			return
+
+		voteindex = ord(reaction.emoji) - ord(r"🇦") if isinstance(reaction.emoji, str) else -1
+
+		if voteindex >= 0 and voteindex < len(self._answers):
+			self._votes[user.id] = voteindex
+
+	async def callbackPollRemoveReact(self, bot, reaction, user):
+		if self._finished or reaction.message.id != self._displaying_message.id:
+			return
+
+		voteindex = ord(reaction.emoji) - ord(r"🇦") if isinstance(reaction.emoji, str) else -1
+
+		if voteindex >= 0 and voteindex < len(self._answers):
+			if user.id in self._votes and self._votes[user.id] == voteindex:
+				del self._votes[user.id]
 
 	async def send_and_wait(self, bot):
 		embed = self.generate_current_embed()
@@ -107,29 +159,19 @@ class Poll:
 			await self._displaying_message.add_reaction(chr(firstunicode + i))
 
 		callback_name = f"callbackPollReactFor{self._displaying_message.id}"
-
+		callback_name2 = f"callbackPollRemoveReactFor{self._displaying_message.id}"
+		
 		bot.client.listen("on_reaction_add", self.callbackPollReact, callback_name)
-
+		bot.client.listen("on_reaction_remove", self.callbackPollRemoveReact, callback_name2)
+		
 		await asyncio.sleep(self._timeout)
-
-		results = self.get_results()
-		gmaxresult = max(results)
-		gmaxchars = 20
-		gchartouse = "."
-
-		description = "\n".join(
-			[f"**{chr(65 + i)}** {gchartouse * (math.floor(gmaxchars * (results[i] / gmaxresult)))}> {results[i]}" for i in range(len(results))]
-		)
-
-		item = EmbedItem(
-			description=description,
-			title=self._question,
-			author=f"Resultados da votação"
-		)
-
-		await self._request_message.channel.send(embed=item.generate())
-
+		self._finished = True
+		
 		bot.client.remove("on_reaction_add", self.callbackPollReact, callback_name)
+		bot.client.remove("on_reaction_remove", self.callbackPollRemoveReact, callback_name2)
+		
+		embed = self.generate_result_embed()
+		await self._request_message.channel.send(embed=embed)
 
 class EmbedItem:
 	def __init__(self, description="", title="", url="", color=discord.Colour.purple(), image="", thumbnail="", author=(), fields=[]):
@@ -216,7 +258,7 @@ class EmbedSlide:
 		# reaction.me apenas retorna verdadeiro com base no primeiro usuário que deu a reação (que no caso é sempre o próprio bot)
 		# Para evitar isso, é utilizado a função get_last_user_from(reaction) para obter a lista completa de pessoas que reagiram e retornando
 		# o ultimo usuário que consequentemente será o gerador do evento
-		if reaction.message.id != self._displaying_message.id or await self.get_last_user_from(reaction) == bot.client.user:
+		if reaction.message.id != self._displaying_message.id or await get_last_user_from(reaction) == bot.client.user:
 			return
 
 		if reaction.emoji == self.right_reaction:
@@ -272,18 +314,6 @@ class EmbedSlide:
 		embed.set_footer(text=f"{self._request_message.author.name} - {self._index + 1}/{len(self._items)}", icon_url=self._request_message.author.avatar_url_as(size=32))
 
 		return embed
-
-	async def get_last_user_from(self, reaction):
-		"""Retorna o ultimo usuário que deu a reação atual.
-		
-		Args:
-		    reaction (Reaction): A reação do discord.
-		
-		Returns:
-		    User: O último usuário que deu a reação informada.
-		"""
-
-		return (await reaction.users().flatten())[-1]
 
 	async def send_and_wait(self, bot):
 		"""Envia como resposta o slide, possibilitando que o usuário navegue utilizando as reações.
@@ -343,17 +373,44 @@ class NaviBot:
 			self.log.write(f"O modulo '{mdl.__name__}' não possui o atributo LISTEN de tipo dict para atribuir eventos, ignorando...")
 
 	def _load_commands_from_module(self, module):
-		for k in module.__dict__:
-			if asyncio.iscoroutinefunction(module.__dict__[k]):
-				if k.startswith("cli_"):
-					atv = k[len("cli_"):]
-					self.clicommands.set(atv, NaviCommand(module.__dict__[k], name=atv, usage=self.config.get("cli.commands.descriptions.{}.usage".format(atv))))
-				elif k.startswith("command_owner_"):
-					atv = k[len("command_owner_"):]
-					self.commands.set(atv, NaviCommand(module.__dict__[k], name=atv, owneronly=True, usage=self.config.get("commands.descriptions.{}.usage".format(atv)), description=self.config.get("commands.descriptions.{}.text".format(atv))))
-				elif k.startswith("command_"):
-					atv = k[len("command_"):]
-					self.commands.set(atv, NaviCommand(module.__dict__[k], name=atv, owneronly=False, usage=self.config.get("commands.descriptions.{}.usage".format(atv)), description=self.config.get("commands.descriptions.{}.text".format(atv))))
+		for key, value in module.__dict__.items():
+			if asyncio.iscoroutinefunction(value):
+				if key.startswith("cli_"):
+					atv = key[len("cli_"):]
+					
+					self.clicommands.set(
+						atv, 
+						NaviCommand(
+							value, 
+							name=atv, 
+							usage=self.config.get("cli.commands.descriptions.{}.usage".format(atv))
+						)
+					)
+				elif key.startswith("command_owner_"):
+					atv = key[len("command_owner_"):]
+					
+					self.commands.set(
+						atv, 
+						NaviCommand(
+							value, 
+							name=atv, 
+							owneronly=True, 
+							usage=self.config.get("commands.descriptions.{}.usage".format(atv)), 
+							description=self.config.get("commands.descriptions.{}.text".format(atv))
+						)
+					)
+				elif key.startswith("command_"):
+					atv = key[len("command_"):]
+
+					self.commands.set(
+						atv, 
+						NaviCommand(
+							value, 
+							name=atv, 
+							owneronly=False, 
+							usage=self.config.get("commands.descriptions.{}.usage".format(atv)), description=self.config.get("commands.descriptions.{}.text".format(atv))
+						)
+					)
 
 	def handle_exception(self, e):
 		"""Imprime de forma verbosa a Exception recebida.
@@ -493,7 +550,7 @@ class NaviBot:
 	# @SECTION
 	# Funções auxiliares dos comandos do bot
 	
-	async def feedback(self, message, feedback=SUCCESS, title=None, text=None, code=False, exception=None, usage=None):
+	async def feedback(self, message, feedback=SUCCESS, title=None, text=None, code=False, exception=None, usage=None, embeditem=None):
 		"""Devolve uma resposta padrão para uma ação do bot.
 		
 		Args:
@@ -504,35 +561,39 @@ class NaviBot:
 		    code (bool, str, optional): Define se será utilizado um bloco de código para escrever o texto definido em text.
 		    exception (Exception, optional): Devolve uma resposta padrão para o usuário caso ocorra uma exception, imprimindo na CLI também.
 		    usage (NaviCommand, optional): O handler contendo a informação de uso.
+			embeditem (EmbedItem, optional): O EmbedItem a ser gerado e enviado como resposta.
 		"""
 
 		await message.add_reaction(feedback_string(feedback))
 
-		if usage != None:
-			if isinstance(usage.usage, list):
-				text = "\n".join([f"`{usage.name} {i}`" for i in usage.usage])
-			else:
-				text = f"`{usage.name} {usage.usage}`"
-
-		if text != None:
-			embed = None
-
-			if isinstance(code, str):
-				text = "```{}\n{}```".format(code, text)
-			elif code:
-				text = "```\n{}```".format(text)
-			else:
-				if title != None:
-					embed = discord.Embed(title=title, description=text, color=discord.Colour.purple())
+		if embeditem:
+			await message.channel.send(embed=embeditem.generate())
+		else:
+			if usage != None:
+				if isinstance(usage.usage, list):
+					text = "\n".join([f"`{usage.name} {i}`" for i in usage.usage])
 				else:
-					embed = discord.Embed(description=text, color=discord.Colour.purple())
+					text = f"`{usage.name} {usage.usage}`"
 
-				embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
+			if text != None:
+				embed = None
 
-			if embed != None:
-				await message.channel.send(embed=embed)
-			else:
-				await message.channel.send(text)
+				if isinstance(code, str):
+					text = "```{}\n{}```".format(code, text)
+				elif code:
+					text = "```\n{}```".format(text)
+				else:
+					if title != None:
+						embed = discord.Embed(title=title, description=text, color=discord.Colour.purple())
+					else:
+						embed = discord.Embed(description=text, color=discord.Colour.purple())
+
+					embed.set_footer(text=message.author.name, icon_url=message.author.avatar_url_as(size=32))
+
+				if embed != None:
+					await message.channel.send(embed=embed)
+				else:
+					await message.channel.send(text)
 
 		if exception != None:
 			self.handle_exception(exception)

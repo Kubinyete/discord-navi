@@ -3,9 +3,11 @@ import re
 import datetime
 import random
 import navibot
+import naviuteis
 from naviclient import NaviRoutine
 from navibot import EmbedItem
 from navibot import EmbedSlide
+from navibot import Poll
 
 async def callbackRemind(bot, kwargs):
 	message = kwargs["message"]
@@ -115,20 +117,7 @@ async def command_remind(bot, message, args, flags, handler):
 		else:
 			await bot.feedback(message, navibot.INFO, text="Você não registrou nenhum lembrete até o momento")
 	else:
-		segundos = 0
-
-		try:
-			for tm in re.findall("[0-9]+[hms]", flags["time"]):
-				every = re.search("^[0-9]+", tm)
-				if every != None:
-					every = int(every[0])
-				unit = re.search("(h|m|s)$", tm)
-				if unit != None:
-					unit = unit[0]
-
-				segundos += NaviRoutine.interval_to_seconds((every, unit))
-		except ValueError:
-			pass
+		segundos = naviuteis.get_time_from(flags["time"])
 
 		if segundos == 0:
 			await bot.feedback(message, navibot.WARNING, text="O argumento '--time' não está em um formato valido")
@@ -143,3 +132,31 @@ async def command_remind(bot, message, args, flags, handler):
 
 				bot.tasks.schedule(task, key=tarefa_str, append=True)
 				await bot.feedback(message, navibot.SUCCESS, text="O lembrete **{}** foi registrado".format(task.kwargs["remind_text"]))
+
+async def command_poll(bot, message, args, flags, handler):
+	if len(args) < 4:
+		await bot.feedback(message, navibot.COMMAND_INFO, usage=handler)
+		return
+
+	question = args[1]
+	answers = args[2:]
+
+	limit = bot.config.get(f"commands.descriptions.{handler.name}.max_allowed_answers")
+
+	if len(answers) < 2:
+		await bot.feedback(message, navibot.WARNING, text="É preciso informar no mínimo duas respostas para iniciar a votação")
+	elif len(answers) > limit:
+		await bot.feedback(message, navibot.WARNING, text="O número de respostas informado ultrapassa o limite estabelecido de {limit}")
+	else:
+		seconds = 60
+
+		if "time" in flags:
+			seconds = naviuteis.get_time_from(flags["time"])
+
+		if seconds < 10:
+			await bot.feedback(message, navibot.WARNING, text="O tempo específicado é menor que 10 segundos")
+		elif seconds > naviuteis.timespan_to_seconds((24, "h")):
+			await bot.feedback(message, navibot.WARNING, text="O tempo específicado é maior que 24 horas")
+		else:
+			p = Poll(question, answers, message, timeout=seconds)
+			await p.send_and_wait(bot)

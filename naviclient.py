@@ -2,6 +2,7 @@ import asyncio
 import time
 import sys
 import discord
+import naviuteis
 
 # @NOTE
 # O cliente NaviClient irá ser o hospedeiro da biblioteca e receberá as chamadas dos eventos principais como on_message e on_ready.
@@ -180,41 +181,13 @@ class NaviRoutine(NaviCallback):
 		self._timespent = 0
 
 	def get_timespent(self):
-		"""Retorna uma tuple que representa o intervalo de execução da rotina.
+		"""Retorna em segundos o tempo gasto após a execução do callback.
 		
 		Returns:
-		    tuple(int, str): Uma tuple consistente de um valor inteiro e um tipo de unidade de tempo em forma de string.
+		    int: Um valor inteiro representando o tempo gasto de execução.
 		"""
 
 		return self._timespent
-
-	@staticmethod
-	def interval_to_seconds(timespan):
-		"""Obtém o valor em segundos de um intervalo de tempo
-		
-		Args:
-		    timespan (tuple(int, str)): A tuple referente ao intervalo de tempo.
-		
-		Returns:
-		    int: O número de segundos.
-		"""
-
-		segundos = 0
-
-		value = timespan[0]
-		unit = timespan[1]
-
-		if unit == "s":
-			segundos = value
-		elif unit == "m":
-			segundos = value * 60
-		elif unit == "h":
-			segundos = value * pow(60, 2)
-		elif unit == "ms":
-			segundos = value / 1000
-
-		return segundos
-
 
 	def get_timespan_seconds(self):
 		"""Retorna o número de segundos referente à este intervalo de tempo.
@@ -223,7 +196,7 @@ class NaviRoutine(NaviCallback):
 		    int: O número de segundos.
 		"""
 
-		return self.interval_to_seconds(self.timespan)
+		return naviuteis.timespan_to_seconds(self.timespan)
 
 	async def run(self, bot):
 		"""Executa o callback associado a rotina, dependendo dos atribudos, esperando o término da rotina ou não.

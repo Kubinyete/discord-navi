@@ -1,4 +1,5 @@
 import math
+import re
 
 ANSI_ESCAPE = "\033[{}m"
 
@@ -119,6 +120,50 @@ def get_args(string):
 
 	return args, flags
 
+def timespan_to_seconds(timespan):
+	"""Obtém o valor em segundos de um intervalo de tempo
+		
+	Args:
+		timespan (tuple(int, str)): A tuple referente ao intervalo de tempo.
+	
+	Returns:
+		int: O número de segundos.
+	"""
+
+	segundos = 0
+
+	value = timespan[0]
+	unit = timespan[1]
+
+	if unit == "s":
+		segundos = value
+	elif unit == "m":
+		segundos = value * 60
+	elif unit == "h":
+		segundos = value * pow(60, 2)
+	elif unit == "ms":
+		segundos = value / 1000
+
+	return segundos
+
+def get_time_from(string):
+	segundos = 0
+
+	try:
+		for tm in re.findall("[0-9]+[hms]", string):
+			every = re.search("^[0-9]+", tm)
+			if every != None:
+				every = int(every[0])
+			unit = re.search("(h|m|s)$", tm)
+			if unit != None:
+				unit = unit[0]
+
+			segundos += timespan_to_seconds((every, unit))
+	except ValueError:
+		pass
+
+	return segundos
+
 def translate_sequences(str):
 	"""Traduz todas as ocorrências de sequências de formatação no estilo {atributo1.atributo2} na cadeia de caracteres passada. 
 	
@@ -206,9 +251,9 @@ def seconds_string(seconds):
 	if h >= 1:
 		output.append(f"{h} hora(s)")
 	if m >= 1:
-		output.append(f"{h} minuto(s)")
-		
-	output.append(f"{seconds} segundo(s)")
+		output.append(f"{m} minuto(s)")
+	if seconds > 0:
+		output.append(f"{seconds} segundo(s)")
 	
 	return ", ".join(output)
 	
