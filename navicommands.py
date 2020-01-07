@@ -45,3 +45,6 @@ class CommandDictionary:
 		"""
 		
 		return self._commands
+
+	def clear(self):
+		self._commands.clear()

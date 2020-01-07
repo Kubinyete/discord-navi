@@ -1,5 +1,46 @@
 import discord
+import sys
+import select
 import navilog
+import naviuteis
+from naviclient import NaviRoutine
+
+async def callbackCliListener(bot, kwargs={}):
+	if not bot.cli_enabled:
+		bot.client.remove("on_ready", callbackCliListener)
+		return
+
+	if not "loop" in kwargs.keys():
+		kwargs["loop"] = True
+		bot.tasks.schedule(NaviRoutine(callbackCliListener, timespan=(bot.config.get("cli.update_delay"), "ms"), waitfor=False, kwargs=kwargs))
+		return
+
+	clilines = []
+
+	while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+		c = sys.stdin.read(1)
+
+		if c == '\n':
+			if len(bot.cli_buffer) > 0:
+				clilines.append(bot.cli_buffer)
+				
+				bot.log.draw_input(True)
+				bot.cli_buffer = ""
+		elif c == '\x7f':
+			if len(bot.cli_buffer) > 0:
+				bot.cli_buffer = bot.cli_buffer[:-1]
+		elif c == '\x1b':
+			pass
+		else:
+			bot.cli_buffer = bot.cli_buffer + c
+		
+		bot.log.draw_input()
+		
+	for l in clilines:
+		cliargs, cliflags = naviuteis.get_args(l)
+
+		if len(cliargs) > 0:
+			await bot.interpret_cli(cliargs, cliflags)
 
 # @SECTION
 # Comandos disponibilizados para a CLI oferecida pelo bot
@@ -13,7 +54,7 @@ async def cli_echo(bot, message, args, flags, handler):
 
 async def cli_context(bot, message, args, flags, handler):
 	if len(args) < 2 and (not "show" in flags and not "clear" in flags):
-		bot.logManager.write(handler.usage, logtype=navilog.DEBUG)
+		bot.log.write(handler.usage, logtype=navilog.DEBUG)
 		return
 
 	if "show" in flags:
@@ -111,4 +152,10 @@ async def cli_quit(bot, message, args, flags, handler):
 
 async def cli_reload(bot, message, args, flags, handler):
 	bot.log.write("Recarregando modulos...", logtype=navilog.WARNING)
-	bot.initialize()
+	await bot.reload()
+
+LISTEN = {
+	"on_ready": [
+		callbackCliListener
+	]
+}

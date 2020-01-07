@@ -115,3 +115,11 @@ class TaskScheduler:
 		"""
 
 		return self._tasks.keys()
+
+	def clear(self):
+		for key in self.get_all_keys():
+			tasks = self.get(key)
+
+			if tasks:
+				for task in tasks:
+					self.cancel(task, key=key)

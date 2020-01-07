@@ -156,7 +156,7 @@ class Poll:
 
 		firstunicode = ord(r"🇦")
 		for i in range(len(self._answers)):
-			await self._displaying_message.add_reaction(chr(firstunicode + i))
+			asyncio.get_running_loop().create_task(self._displaying_message.add_reaction(chr(firstunicode + i)))
 
 		callback_name = f"callbackPollReactFor{self._displaying_message.id}"
 		callback_name2 = f"callbackPollRemoveReactFor{self._displaying_message.id}"
@@ -327,8 +327,8 @@ class EmbedSlide:
 		self._displaying_message = await self._request_message.channel.send(embed=embed)
 		self._callback_name = f"callbackEmbedSlideFor{self._displaying_message.id}"
 
-		await self._displaying_message.add_reaction(self.left_reaction)
-		await self._displaying_message.add_reaction(self.right_reaction)
+		asyncio.get_running_loop().create_task(self._displaying_message.add_reaction(self.left_reaction))
+		asyncio.get_running_loop().create_task(self._displaying_message.add_reaction(self.right_reaction))
 
 		bot.client.listen("on_reaction_add", self.callbackEmbedSlideReact, self._callback_name)
 
@@ -448,18 +448,28 @@ class NaviBot:
 		"""
 
 		self.client.remove_all()
+		self.commands.clear()
+		self.clicommands.clear()
+		self.tasks.clear()
+
 		self.config.load()
 
 		self.prefix = self.config.get("global.bot_prefix")
 		
+		# Carrega os callbacks do núcleo novamente...
 		self._load_events_from_module(self._load_module("navicallbacks"))
 
+		# Carrega todos os modulos a serem acoplados...
 		for mdlstr in self.config.get("global.bot_modules"):
 			mdl = self._load_module(mdlstr)
 
 			if mdl != None:
 				self._load_events_from_module(mdl)
 				self._load_commands_from_module(mdl)
+
+	async def reload(self):
+		self.initialize()
+		await self.client.on_reload()
 
 	async def interpret_command(self, message, args, flags):
 		"""Interpreta um comando, encontrando com base em seus args e flags o seu handler responsável por executá-lo.

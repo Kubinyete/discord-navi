@@ -54,6 +54,9 @@ class NaviClient(discord.Client):
 		for c in self._events["on_member_remove"]:
 			asyncio.get_running_loop().create_task(c.callback(self._bot, member))
 
+	async def on_reload(self):
+		await self.on_ready()
+
 	def listen(self, event, callback, name=None):
 		"""Atribui á um evento um novo callback a ser executado.
 		

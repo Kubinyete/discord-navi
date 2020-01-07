@@ -146,7 +146,7 @@ async def command_poll(bot, message, args, flags, handler):
 	if len(answers) < 2:
 		await bot.feedback(message, navibot.WARNING, text="É preciso informar no mínimo duas respostas para iniciar a votação")
 	elif len(answers) > limit:
-		await bot.feedback(message, navibot.WARNING, text="O número de respostas informado ultrapassa o limite estabelecido de {limit}")
+		await bot.feedback(message, navibot.WARNING, text=f"O número de respostas informado ultrapassa o limite estabelecido de {limit}")
 	else:
 		seconds = 60
 

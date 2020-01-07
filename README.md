@@ -22,7 +22,9 @@ A configuração do bot pode ser encontrada no arquivo de exemplo `config.json` 
 		"bot_prefix": ";;",
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
 		"bot_playing_delay": 120,
-		"bot_modules": ["modules.commands", "modules.commands_cli", "modules.commands_yandere"],
+		"bot_modules": [
+			"modules.commands", 
+		],
 		"log_path": ""
 	}
 }
@@ -57,22 +59,26 @@ Ao término do modulo, será necessário atualizar a lista de modulos a serem ca
 		"bot_prefix": ";;",
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
 		"bot_playing_delay": 120,
-		"bot_modules": ["modules.commands", "modules.commands_cli", "modules.commands_yandere", "modules.commands_helloworld"],
+		"bot_modules": [
+			"modules.commands", 
+			"modules.commands_helloworld"
+		],
 		"log_path": ""
 	}
 }
 ```
 
-## Problemas/Correções/Notas
+## TODO (em modificação constante)
 
-###### Command Line Interface
+### FEATURES - (?) são apenas conceitos a serem explorados
 
-Atualmente a CLI está rodando na mesma thread que o resto do bot, ou seja, está sendo implementada como uma rotina cujo objetivo é obter a entrada de dados da STDIN e interpretá-la, ao mesmo tempo que preserva a formatação do input gráficamente, isso acaba indiretamente impactando a performance do bot. Possíveis soluções para o mesmo seria a possibilidade de desativá-la e implementar uma melhor forma de rodar o bot em produção (sem cli, performance máxima) ou rodá-la opcionalmente em uma thread separada.
+- [ ] MODULO: Integração com a API Danbooru/Safebooru semelhante a já implementada.
+- [ ] MODULO: Modulo de gerênciamento de progressão dos usuários, EXP/PONTOS/PERFIL.
+- [ ] BOT: Preferências e variáveis definidas em um contexto diferente para cada Guild, integrado à um banco de dados local.
 
-###### Logs
+- [ ] MODULO: (?) Integração com a API AniList (possibilidade de integrar várias ideias; buscar personagens ou animes; perfil com top animes/personagens do usuário através do bot).
 
-Todas as mensagens são guardadas, dependendo do seu nível, em um arquivo de log pré-determinado pelo arquivo de configurações, isso causa um gargalo em produção devido a necessidade de pausar para escrever em disco. Possíveis soluções para o mesmo seria a implementação opcional da funcionalidade, implementação assíncrona de I/O utilizando o asyncio ou biblioteca ou até mesmo jogá-la para outra thread.
+### REWRITE
 
-###### Componentes/Integração/Aproveitamento
-
-Será necessário abstrair ao máximo os componentes do bot, permitindo uma maior flexibilidade e aproveitamento de código, ou seja, precisamos implementar componentes que podem ser quebrados em pequenas partes. O maior exemplo da quebra deste princípio atualmente é a integração da própria CLI como se fosse uma rotina do bot, ou seja, estamos integrando forçadamente duas coisas que não precisam se misturar.
+- [ ] QUALIDADE: Desacoplar a CLI do núcleo do bot presente em navibot.NaviBot, tornar algo totalmente separado que não necessite de uma modificação na classe principal, pode ser necessário uma total reescrita do navilog.LogManager.
+- [ ] BUG: Verificar BUGs com o comando reload (recarregamento de modulos no Python é algo extremamente complexo e difícil de fazer, pode ser que nunca será arrumado ou será retirado por completo)
