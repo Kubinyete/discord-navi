@@ -257,3 +257,23 @@ def seconds_string(seconds):
 	
 	return ", ".join(output)
 	
+def convert_string_any_type(seq):
+	seqlow = seq.lower()
+
+	if seqlow in ("true", "yes", "1"):
+		return True
+	
+	if seqlow in ("false", "no", "0"):
+		return False
+	
+	try:
+		return float(seq)
+	except ValueError:
+		pass
+
+	try:
+		return int(seq)
+	except ValueError:
+		pass
+
+	return seq

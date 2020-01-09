@@ -6,12 +6,22 @@
 		"bot_playing_delay": 120,
 		"bot_modules": [
 			"modules.commands", 
-			"modules.commands_cli", 
+			"modules.commands_cli",
 			"modules.commands_osu", 
 			"modules.commands_yandere",
 			"modules.commands_shell"
 		],
 		"log_path": ""
+	},
+	"database": {
+		"connection": {
+			"connection_string": "mysql://navibot:@localhost/navibotdb"
+		},
+		"guild_settings": {
+			"default_global_guild_settings": {
+				"disable_nsfw": true
+			}
+		}
 	},
 	"commands": {
 		"owners": [],
@@ -38,6 +48,20 @@
 					"<titulo> --time=1h30m15s",
 					"--list",
 					"--remove=id"
+				]
+            },
+            "poll": {
+                "max_allowed_answers": 6,
+                "text": "Inicia uma votação de acordo com a pergunta e as respostas passadas ao comando, o resultado será dado após expirar o tempo limite.",
+                "usage": "<pergunta> <resposta1> <resposta2> [resposta3]... [--time=1h30m15s]"
+			},
+			"guildsettings": {
+				"max_allowed_settings_per_page": 20,
+				"text": "Altera as chaves de configuração da guild atual.",
+				"usage": [
+					"",
+					"get <chave>",
+					"set <chave> <valor> [valor2] [valorN]..."
 				]
 			},
 			"bc": {
@@ -89,18 +113,16 @@
 		}
 	},
 	"external": {
-		"navi": {
-			"github_resources_url": "https://raw.githubusercontent.com/Kubinyete/discord-navi/dev/resources"
-		},
 		"osu": {
 			"max_allowed_best_scores_per_user": 10,
 			"api_key": "OSU_API_KEY",
 			"api_domain": "osu.ppy.sh",
 			"api_assets": "a.ppy.sh",
 			"api_getuser": "api/get_user",
-			"api_getuserbest": "api/get_user_best"
+			"api_getuserbest": "api/get_user_best",
+			"rank_resources_url": "https://raw.githubusercontent.com/Kubinyete/discord-navi/dev/resources"
 		},
-		"osuweb": {
+		"osu_web": {
 			"api_domain": "osu.ppy.sh",
 			"api_searchbeatmapsets": "beatmapsets/search",
 			"api_usersscoresbest": "users/{id}/scores/best"

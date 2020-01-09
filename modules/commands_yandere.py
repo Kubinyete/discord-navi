@@ -19,20 +19,25 @@ async def command_yandere(bot, message, args, flags, handler):
 
         if len(tags) > 0:
             items = []
-            per_page = bot.config.get("external.yandere.max_allowed_tags_per_page")
-            rindex = per_page - 1
-            lindex = 0
+            per_page = bot.config.get(f"external.{handler.name}.max_allowed_tags_per_page")
+            
+            i = 0
+            curritem = EmbedItem(
+                title="Tag(s) encontrada(s) em yande.re",
+            )
 
-            while lindex < len(tags):
-                current_slice = tags[lindex:rindex]
+            for tagtype, tag in tags:
+                curritem.description += f'**{YandereApi.tag_type_string(tagtype)}** - `{tag}`\n'
+                i += 1
 
-                items.append(EmbedItem(
-                    title="Resultados da busca",
-                    description='`' + "\n".join(current_slice) + '`',
-                ))
+                if i % per_page == 0:
+                    items.append(curritem)
+                    curritem = EmbedItem(
+                        title="Tag(s) encontrada(s) em yande.re"
+                    )
 
-                lindex = rindex + 1
-                rindex += per_page
+            if i % per_page != 0:
+                items.append(curritem)
 
             await EmbedSlide(items, message).send_and_wait(bot)
         else:
@@ -50,11 +55,16 @@ async def command_yandere(bot, message, args, flags, handler):
 
         search = " ".join(args[2:] if len(args) > 2 else "")
 
-        result = await api.search_for_post(search, limit=bot.config.get("external.yandere.max_allowed_posts_per_page"), page=page)
+        result = await api.search_for_post(search, limit=bot.config.get(f"external.{handler.name}.max_allowed_posts_per_page"), page=page)
         
-        domain = bot.config.get("external.yandere.api_domain")
-        postshow = bot.config.get("external.yandere.api_postshow")
-        disablensfw = bot.config.get("external.yandere.disable_nsfw")
+        domain = bot.config.get(f"external.{handler.name}.api_domain")
+        postshow = bot.config.get(f"external.{handler.name}.api_postshow")
+        disablensfw = True
+
+        currsettings = await bot.guildsettings.get_settings(message.guild)
+
+        if "disable_nsfw" in currsettings:
+            disablensfw = currsettings["disable_nsfw"]
 
         if len(result) > 0:
             items = []

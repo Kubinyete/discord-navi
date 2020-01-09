@@ -131,7 +131,7 @@ async def command_remind(bot, message, args, flags, handler):
 				task.kwargs["task"] = task
 
 				bot.tasks.schedule(task, key=tarefa_str, append=True)
-				await bot.feedback(message, navibot.SUCCESS, text="O lembrete **{}** foi registrado".format(task.kwargs["remind_text"]))
+				await bot.feedback(message, navibot.SUCCESS)
 
 async def command_poll(bot, message, args, flags, handler):
 	if len(args) < 4:
@@ -160,3 +160,52 @@ async def command_poll(bot, message, args, flags, handler):
 		else:
 			p = Poll(question, answers, message, timeout=seconds)
 			await p.send_and_wait(bot)
+
+async def command_guildsettings(bot, message, args, flags, handler):
+	currsettings = await bot.guildsettings.get_settings(message.guild)
+
+	if len(args) < 2:
+		items = []
+		per_page = bot.config.get(f"commands.descriptions.{handler.name}.max_allowed_settings_per_page")
+		
+		i = 0
+		curritem = EmbedItem(
+			title="Chaves de configuração da Guild",
+		)
+
+		for key, value in currsettings.items():
+			curritem.description += f'`{key} = "{value}"`\n'
+			i += 1
+
+			if i % per_page == 0:
+				items.append(curritem)
+				curritem = EmbedItem(
+					title="Chaves de configuração da Guild",
+				)
+
+		if i % per_page != 0:
+			items.append(curritem)
+
+		if i > 0:
+			await EmbedSlide(items, message).send_and_wait(bot)
+		else:
+			await bot.feedback(message, feedback=navibot.WARNING, text=f"Nenhuma chave foi encontrada para esta guild")
+	else:
+		if len(args) > 2 and args[1] == "get":
+			try:
+				await bot.feedback(message, feedback=navibot.SUCCESS, text=f'`{args[2]} = "{currsettings[args[2]]}"`\n')
+			except KeyError:
+				await bot.feedback(message, feedback=navibot.WARNING, text=f"A chave `{args[2]}` não foi encontrada")
+		elif len(args) > 3 and args[1] == "set":
+			if not args[2] in currsettings:
+				await bot.feedback(message, feedback=navibot.WARNING, text=f"A chave `{args[2]}` não foi encontrada")
+			else:
+				currsettings[args[2]] = naviuteis.convert_string_any_type(" ".join(args[3:]))
+
+				try:
+					await bot.guildsettings.update_settings(message.guild, currsettings)
+					await bot.feedback(message, feedback=navibot.SUCCESS)
+				except Exception as e:
+					await bot.feedback(message, feedback=navibot.ERROR, exception=e)
+		else:
+			await bot.feedback(message, feedback=navibot.COMMAND_INFO, usage=handler)

@@ -32,9 +32,9 @@ async def command_osu(bot, message, args, flags, handler):
 		if len(user) > 0:
 			user = user[0]
 
-			domain = bot.config.get("external.osu.api_domain")
-			assets = bot.config.get("external.osu.api_assets")
-			naviresources = bot.config.get("external.navi.github_resources_url")
+			domain = bot.config.get(f"external.{handler.name}.api_domain")
+			assets = bot.config.get(f"external.{handler.name}.api_assets")
+			naviresources = bot.config.get(f"external.{handler.name}.rank_resources_url")
 
 			items = [EmbedItem(
 				title=f"{user['username']}",
@@ -52,7 +52,7 @@ async def command_osu(bot, message, args, flags, handler):
 				]
 			)]
 
-			user_best = await api.get_user_best_v2(user['user_id'], modestr=modestrv2, limit=bot.config.get("external.osu.max_allowed_best_scores_per_user"))
+			user_best = await api.get_user_best_v2(user['user_id'], modestr=modestrv2, limit=bot.config.get(f"external.{handler.name}.max_allowed_best_scores_per_user"))
 
 			for score in user_best:
 				beatmap = score['beatmap']

@@ -16,10 +16,10 @@ async def callbackActivity(bot, kwargs={}):
 	if not "loop" in kwargs:
 		kwargs["loop"] = True
 		kwargs["playing_index"] = 0
-		bot.tasks.schedule(NaviRoutine(callbackActivity, timespan=(bot.config.get("global.bot_playing_delay"), "s"), kwargs=kwargs))
+		bot.tasks.schedule(NaviRoutine(callbackActivity, timespan=(bot.config.get(f"global.bot_playing_delay"), "s"), kwargs=kwargs))
 		return
 
-	activities = bot.config.get("global.bot_playing")
+	activities = bot.config.get(f"global.bot_playing")
 
 	if activities != None:
 		if kwargs["playing_index"] >= len(activities):

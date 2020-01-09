@@ -16,9 +16,9 @@ class OsuApi:
         return OsuApi.unique_instance
 
     async def get_user(self, username, modeid=0):
-        domain = self._bot.config.get("external.osu.api_domain")
-        endpoint = self._bot.config.get("external.osu.api_getuser")
-        key = self._bot.config.get("external.osu.api_key")
+        domain = self._bot.config.get(f"external.osu.api_domain")
+        endpoint = self._bot.config.get(f"external.osu.api_getuser")
+        key = self._bot.config.get(f"external.osu.api_key")
         
         return await self._bot.http.fetch_json(f"https://{domain}/{endpoint}", params={
             "k": key, 
@@ -28,9 +28,9 @@ class OsuApi:
         })
 
     async def get_user_best(self, username, modeid=0, limit=10):
-        domain = self._bot.config.get("external.osu.api_domain")
-        endpoint = self._bot.config.get("external.osu.api_getuserbest")
-        key = self._bot.config.get("external.osu.api_key")
+        domain = self._bot.config.get(f"external.osu.api_domain")
+        endpoint = self._bot.config.get(f"external.osu.api_getuserbest")
+        key = self._bot.config.get(f"external.osu.api_key")
         
         return await self._bot.http.fetch_json(f"https://{domain}/{endpoint}", params={
             "k": key, 
@@ -41,8 +41,8 @@ class OsuApi:
         })
 
     async def get_user_best_v2(self, userid, modestr="osu", limit=10):
-        domain = self._bot.config.get("external.osuweb.api_domain")
-        endpoint = self._bot.config.get("external.osuweb.api_usersscoresbest").format(id=userid)
+        domain = self._bot.config.get(f"external.osu_web.api_domain")
+        endpoint = self._bot.config.get(f"external.osu_web.api_usersscoresbest").format(id=userid)
         
         return await self._bot.http.fetch_json(f"https://{domain}/{endpoint}", params={
             "mode": modestr, 

@@ -74,9 +74,10 @@ Ao término do modulo, será necessário atualizar a lista de modulos a serem ca
 
 - [ ] MODULO: Integração com a API Danbooru/Safebooru semelhante a já implementada.
 - [ ] MODULO: Modulo de gerênciamento de progressão dos usuários, EXP/PONTOS/PERFIL.
-- [ ] BOT: Preferências e variáveis definidas em um contexto diferente para cada Guild, integrado à um banco de dados local.
+- [x] BOT: Preferências e variáveis definidas em um contexto diferente para cada Guild, integrado à um banco de dados local.
 
 - [ ] MODULO: (?) Integração com a API AniList (possibilidade de integrar várias ideias; buscar personagens ou animes; perfil com top animes/personagens do usuário através do bot).
+- [ ] BOT: (?) Criação de um script launcher, capaz de atualizar o bot, alterar configurações, gerênciar o banco de dados relacionado e inclusive adicionar novos modulos de um repositório github.
 
 ### REWRITE
 

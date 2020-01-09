@@ -26,6 +26,7 @@ from naviconfig import ConfigManager
 from navicommands import CommandDictionary
 from navitasks import TaskScheduler
 from navihttp import HttpWorker
+from databases import Database
 
 # Mensagem de texto padrão
 INFO = 0
@@ -174,13 +175,14 @@ class Poll:
 		await self._request_message.channel.send(embed=embed)
 
 class EmbedItem:
-	def __init__(self, description="", title="", url="", color=discord.Colour.purple(), image="", thumbnail="", author=(), fields=[]):
+	def __init__(self, description="", title="", url="", footer="", color=discord.Colour.purple(), image="", thumbnail="", author=(), fields=[]):
 		"""Define um item de uma coleção de itens de slide, possui propriedades do objeto Embed do discord.
 		
 		Args:
 		    description (str, optional): O texto da descrição.
 		    title (str, optional): O título do embed.
 		    url (str, optional): O url presente no título.
+			footer (tuple(str, str?), str, optional): Uma tuple contendo (text, icon_url) ou apenas uma string.
 		    color (Colour, int, optional): A color utilizada.
 		    image (str, optional): O url da imagem a ser mostrada.
 		    thumbnail (str, optional): O url da minitura a ser mostrada.
@@ -196,6 +198,7 @@ class EmbedItem:
 		self.thumbnail = thumbnail
 		self.author = author
 		self.fields = fields
+		self.footer = footer
 
 	def generate(self):
 		embed = discord.Embed()
@@ -226,6 +229,15 @@ class EmbedItem:
 				embed.add_field(name=field[0], value=field[1], inline=field[2])
 			else:
 				embed.add_field(name=field[0], value=field[1], inline=False)
+
+		if isinstance(self.footer, tuple):
+			if len(self.footer) > 0:
+				if len(self.footer) == 2:
+					embed.set_footer(text=self.footer[0], icon_url=self.footer[1])
+				else:
+					embed.set_footer(text=self.footer[0])
+		elif isinstance(self.footer, str):
+			embed.set_footer(text=self.footer)
 
 		return embed
 
@@ -338,6 +350,93 @@ class EmbedSlide:
 
 		bot.client.remove("on_reaction_add", self.callbackEmbedSlideReact, self._callback_name)
 
+class GuildSettingsManager:
+	def __init__(self, bot, default_global_settings={}):
+		self._guilds = {}
+		self._bot = bot
+		self.default_global_settings = default_global_settings
+
+	def get_all_keys(self):
+		return self._guilds.keys()
+
+	async def get_database_connection(self):
+		return await self._bot.get_database_connection()
+		
+	async def get_settings(self, guild):
+		if guild.id in self._guilds.keys():
+			return self._guilds[guild.id]
+		else:
+			await self.fetch(guild)
+
+			if guild.id in self._guilds.keys():
+				return self._guilds[guild.id]
+			else:
+				return dict(self.default_global_settings)
+
+	async def update_settings(self, guild, settings):
+		conn = await self.get_database_connection()
+
+		self._guilds[guild.id] = settings
+
+		kvs = [
+			{
+				"id": guild.id, 
+				"key": key, 
+				"value": str(value), 
+				"valuetype": self.translate_type_valuetype(value)
+			} 
+			for key, value in settings.items()
+		]
+
+		async with conn.transaction():
+			await conn.execute(
+				query="DELETE FROM guild_settings WHERE gui_id = :id",
+				values={
+					"id": guild.id
+				}
+			)
+
+			await conn.execute_many(
+				query="INSERT INTO guild_settings (gui_id, gst_key, gst_value, gst_value_type) VALUES (:id, :key, :value, :valuetype)",
+				values=kvs
+			)
+	
+	async def fetch(self, guild):
+		conn = await self.get_database_connection()
+
+		rows = await conn.fetch_all(
+			query="""SELECT gst_key, gst_value, gst_value_type FROM guild_settings WHERE gui_id = :id""",
+			values={
+				"id": guild.id
+			}
+		)
+
+		self._guilds[guild.id] = {}
+		for row in rows:
+			self._guilds[guild.id][row['gst_key']] = self.translate_key_value(row['gst_value'], row['gst_value_type'])
+
+	@staticmethod
+	def translate_key_value(value, value_type):
+		if value_type == 1:
+			return value.lower() in ("yes", "true", "1")
+		elif value_type == 2:
+			return int(value)
+		elif value_type == 3:
+			return float(value)
+		
+		return str(value)
+
+	@staticmethod
+	def translate_type_valuetype(value):
+		if isinstance(value, bool):
+			return 1
+		elif isinstance(value, int):
+			return 2
+		elif isinstance(value, float):
+			return 3
+
+		return 0
+
 class NaviBot:
 	def __init__(self, configpath, cli=True):
 		"""Inicializa uma instância NaviBot.
@@ -349,6 +448,7 @@ class NaviBot:
 		self.cli_enabled = cli and platform.system() == "Linux"
 		self.cli_buffer = ""
 		self.cli_context = None
+		
 		self.log = LogManager("debug.log", self)
 		self.config = ConfigManager(configpath, self)
 		self.commands = CommandDictionary(self)
@@ -356,10 +456,33 @@ class NaviBot:
 		self.tasks = TaskScheduler(self)
 		self.http = HttpWorker(self)
 
+		self._active_database_connection = None
+
+		self.guildsettings = GuildSettingsManager(self, self.config.get(f"database.guild_settings.default_global_guild_settings"))
+
 		# Atualiza novamente o path para o especificado no arquivo de configurações
-		self.log.set_path(self.config.get("global.log_path"))
+		self.log.set_path(self.config.get(f"global.log_path"))
 		# Inicializa o cliente
 		self.client = NaviClient(self)
+
+	async def get_database_connection(self):
+		if self._active_database_connection is None:
+			try:
+				self._active_database_connection = Database(self.config.get(f"database.connection.connection_string"))
+				await self._active_database_connection.connect()
+			except Exception as e:
+				self.handle_exception(e)
+				self._active_database_connection = None
+		
+		return self._active_database_connection
+
+	async def close_database_connection(self):
+		if self._active_database_connection is not None:
+			try:
+				await self._active_database_connection.disconnect()
+				self._active_database_connection = None
+			except Exception as e:
+				self.handle_exception(e)
 
 	def _load_events_from_module(self, mdl):
 		try:
@@ -454,13 +577,13 @@ class NaviBot:
 
 		self.config.load()
 
-		self.prefix = self.config.get("global.bot_prefix")
+		self.prefix = self.config.get(f"global.bot_prefix")
 		
 		# Carrega os callbacks do núcleo novamente...
 		self._load_events_from_module(self._load_module("navicallbacks"))
 
 		# Carrega todos os modulos a serem acoplados...
-		for mdlstr in self.config.get("global.bot_modules"):
+		for mdlstr in self.config.get(f"global.bot_modules"):
 			mdl = self._load_module(mdlstr)
 
 			if mdl != None:
@@ -517,7 +640,7 @@ class NaviBot:
 		    bool: Retorna se é um autor definido.
 		"""
 
-		return author.id in self.config.get("commands.owners")
+		return author.id in self.config.get(f"commands.owners")
 
 	def start(self):
 		"""Inicia o bot, bloqueando a execução de outros procedimentos e executando somente o loop de eventos.
@@ -540,7 +663,7 @@ class NaviBot:
 		try:
 			#uvloop.install()
 
-			self.client.navi_start(self.config.get("global.bot_token"))
+			self.client.navi_start(self.config.get(f"global.bot_token"))
 		except Exception as e:
 			self.handle_exception(e)
 		finally:
@@ -554,6 +677,7 @@ class NaviBot:
 
 		self.log.set_path("")
 		self.log.close()
+		await self.close_database_connection()
 		await self.http.close()
 		await self.client.navi_stop()
 
