@@ -24,35 +24,43 @@ class NaviClient(discord.Client):
 
 	async def on_ready(self):
 		for c in self._events["on_ready"]:
-			asyncio.get_running_loop().create_task(c.callback(self._bot))
+			if c.enabled:
+				asyncio.get_running_loop().create_task(c.callback(self._bot))
 
 	async def on_message(self, message):
 		for c in self._events["on_message"]:
-			asyncio.get_running_loop().create_task(c.callback(self._bot, message))
+			if c.enabled:
+				asyncio.get_running_loop().create_task(c.callback(self._bot, message))
 
 	async def on_error(self, *args, **kwargs):
 		for c in self._events["on_error"]:
-			asyncio.get_running_loop().create_task(c.callback(self._bot, sys.exc_info()))
+			if c.enabled:
+				asyncio.get_running_loop().create_task(c.callback(self._bot, sys.exc_info()))
 
 	async def on_reaction_add(self, reaction, user):
 		for c in self._events["on_reaction_add"]:
-			asyncio.get_running_loop().create_task(c.callback(self._bot, reaction, user))
+			if c.enabled:
+				asyncio.get_running_loop().create_task(c.callback(self._bot, reaction, user))
 
 	async def on_reaction_remove(self, reaction, user):
 		for c in self._events["on_reaction_remove"]:
-			asyncio.get_running_loop().create_task(c.callback(self._bot, reaction, user))
+			if c.enabled:
+				asyncio.get_running_loop().create_task(c.callback(self._bot, reaction, user))
 
 	async def on_reaction_clear(self, message, reactions):
 		for c in self._events["on_reaction_clear"]:
-			asyncio.get_running_loop().create_task(c.callback(self._bot, message, reactions))
+			if c.enabled:
+				asyncio.get_running_loop().create_task(c.callback(self._bot, message, reactions))
 
 	async def on_member_join(self, member):
 		for c in self._events["on_member_join"]:
-			asyncio.get_running_loop().create_task(c.callback(self._bot, member))
+			if c.enabled:
+				asyncio.get_running_loop().create_task(c.callback(self._bot, member))
 
 	async def on_member_remove(self, member):
 		for c in self._events["on_member_remove"]:
-			asyncio.get_running_loop().create_task(c.callback(self._bot, member))
+			if c.enabled:
+				asyncio.get_running_loop().create_task(c.callback(self._bot, member))
 
 	async def on_reload(self):
 		await self.on_ready()
@@ -220,7 +228,7 @@ class NaviRoutine(NaviCallback):
 		return f"{self.name}:{self.callback.__name__} ({self.timespan[0]}, {self.timespan[1]}) waifor={self.waitfor} enabled={self.enabled} kwargs={self.kwargs}"
 
 class NaviCommand(NaviCallback):
-	def __init__(self, callback, name=None, owneronly=False, usage="", description=""):
+	def __init__(self, callback, name=None, owneronly=False, usage="", description="", permissions=[]):
 		"""Define um objeto encapsulador de um comando do bot.
 		
 		Args:
@@ -235,6 +243,7 @@ class NaviCommand(NaviCallback):
 		self.owneronly = owneronly
 		self.usage = "Informações de uso não disponível" if not usage else usage
 		self.description = "Nenhuma descrição disponível" if not description else description
+		self.permissions = permissions
 
 	async def run(self, bot, message, args, flags):
 		"""Executa o callback associado a comando sem esperar pelo término.

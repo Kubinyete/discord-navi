@@ -5,11 +5,11 @@
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
 		"bot_playing_delay": 120,
 		"bot_modules": [
-			"modules.commands", 
-			"modules.commands_cli",
-			"modules.commands_osu", 
-			"modules.commands_yandere",
-			"modules.commands_shell"
+			"modules.core", 
+			"modules.cli",
+			"modules.osu", 
+			"modules.yandere",
+			"modules.shell"
 		],
 		"log_path": ""
 	},
@@ -62,6 +62,9 @@
 					"",
 					"get <chave>",
 					"set <chave> <valor> [valor2] [valorN]..."
+				],
+				"permissions": [
+					"administrator"
 				]
 			},
 			"bc": {

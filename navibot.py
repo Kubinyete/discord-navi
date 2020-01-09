@@ -506,7 +506,7 @@ class NaviBot:
 						NaviCommand(
 							value, 
 							name=atv, 
-							usage=self.config.get("cli.commands.descriptions.{}.usage".format(atv))
+							usage=self.config.get(f"cli.commands.descriptions.{atv}.usage")
 						)
 					)
 				elif key.startswith("command_owner_"):
@@ -518,12 +518,14 @@ class NaviBot:
 							value, 
 							name=atv, 
 							owneronly=True, 
-							usage=self.config.get("commands.descriptions.{}.usage".format(atv)), 
-							description=self.config.get("commands.descriptions.{}.text".format(atv))
+							usage=self.config.get(f"commands.descriptions.{atv}.usage"), 
+							description=self.config.get(f"commands.descriptions.{atv}.text")
 						)
 					)
 				elif key.startswith("command_"):
 					atv = key[len("command_"):]
+
+					cmdperms = self.config.get(f"commands.descriptions.{atv}.permissions")
 
 					self.commands.set(
 						atv, 
@@ -531,7 +533,9 @@ class NaviBot:
 							value, 
 							name=atv, 
 							owneronly=False, 
-							usage=self.config.get("commands.descriptions.{}.usage".format(atv)), description=self.config.get("commands.descriptions.{}.text".format(atv))
+							usage=self.config.get(f"commands.descriptions.{atv}.usage"), 
+							description=self.config.get(f"commands.descriptions.{atv}.text"),
+							permissions=cmdperms if cmdperms else []
 						)
 					)
 
@@ -611,8 +615,16 @@ class NaviBot:
 		if not h.enabled:
 			await self.feedback(message, WARNING, text="Este comando está atualmente desativado")
 		elif h.owneronly and not self.is_owner(message.author):
-			await self.feedback(message, WARNING, text="Você não ter permissão para realizar esta ação")
+			await self.feedback(message, WARNING, text="Você não tem permissão para realizar esta ação")
 		else:
+			if h.permissions:
+				perms = message.channel.permissions_for(message.author)
+
+				for perm_name in h.permissions:
+					if not (perm_name, True) in perms:
+						await self.feedback(message, WARNING, text="Você as permissões necessárias para realizar esta ação")
+						return
+
 			await h.run(self, message, args, flags)
 
 	async def interpret_cli(self, cliargs, cliflags):

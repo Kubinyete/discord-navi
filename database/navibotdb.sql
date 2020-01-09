@@ -19,8 +19,8 @@ CREATE TABLE guild_settings (
 CREATE TABLE member (
     usr_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
     gui_id BIGINT UNSGINED NOT NULL PRIMARY KEY,
-    usr_exp BIGINT UNSIGNED NOT NULL DEFAULT 0,
-    usr_credits INT UNSIGNED NOT NULL DEFAULT 0
+    mem_exp BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    mem_credits INT UNSIGNED NOT NULL DEFAULT 0
 );
 
 -- PROGRESSION: Global rewards that can be selected by the guild owner/administrator

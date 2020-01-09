@@ -1,86 +1,97 @@
-import asyncio
-import aiohttp
-import re
-import navilog
+import navibot
 import naviuteis
+from navibot import EmbedSlide
+from navibot import EmbedItem
+from modules.lib.yandereapi import YandereApi
 
-class TagSummary:
-    def __init__(self, tagtype, relatives):
-        self.type = tagtype
-        self.relatives = relatives
+async def callbackCreateYandereApiInstance(bot):
+    await YandereApi.get_instance(bot).load_tag_summary()
 
-class YandereApi:
-    unique_instance = None
+async def command_yandere(bot, message, args, flags, handler):
+    if len(args) < 2:
+        await bot.feedback(message, navibot.COMMAND_INFO, usage=handler)
+        return
 
-    def __init__(self, bot):
-        self._tags = []
-        self._bot = bot
+    api = YandereApi.get_instance()
 
-    async def load_tag_summary(self):
-        """Carrega todas as tags disponíveis para busca, armazena as mesmas em um buffer para evitar estresse.
-        """
+    if "tag" == args[1]:
+        tags = api.search_for_tag(" ".join(args[2:]), re="re" in flags)
 
-        domain = self._bot.config.get(f"external.yandere.api_domain")
-        endpoint = self._bot.config.get(f"external.yandere.api_gettagsummary")
+        if len(tags) > 0:
+            items = []
+            per_page = bot.config.get(f"external.{handler.name}.max_allowed_tags_per_page")
+            
+            i = 0
+            curritem = EmbedItem(
+                title="Tag(s) encontrada(s) em yande.re",
+            )
 
-        self._bot.log.write(f"YandereApi: Carregando sumário de tags através do endpoint '{domain}/{endpoint}'", logtype=navilog.DEBUG)
+            for tagtype, tag in tags:
+                curritem.description += f'**{YandereApi.tag_type_string(tagtype)}** - `{tag}`\n'
+                i += 1
 
-        json = await self._bot.http.fetch_json(f"https://{domain}/{endpoint}")
-
-        try:
-            taggroups = json["data"].split(" ")
-            del taggroups[-1]
-
-            for taggroup in taggroups:
-                tagdata = taggroup.split("`")
-                del tagdata[-1]
-                self._tags.append(TagSummary(int(tagdata[0]), tagdata[1:]))
-
-        except KeyError as e:
-            self._bot.handle_exception(e)
-            return
-
-        self._bot.log.write(f"YandereApi: As tags foram carregadas", logtype=navilog.DEBUG)
-
-    @staticmethod
-    def get_instance(bot=None):
-        if YandereApi.unique_instance is None and not bot is None:
-            YandereApi.unique_instance = YandereApi(bot)
-        
-        return YandereApi.unique_instance
-
-    @staticmethod
-    def tag_type_string(type):
-        if type == 0:
-            return "General"
-        if type == 1:
-            return "Artist"
-        if type == 3:
-            return "Copyright"
-        if type == 4:
-            return "Character"
-
-        return "Unknown"
-
-
-    def search_for_tag(self, search, re=False):
-        result = []
-
-        for taggroup in self._tags:
-            for tag in taggroup.relatives:
-                if (re and re.search(search, tag)) or ((not re) and search in tag):
-                    result.append(
-                        (taggroup.type, tag)
+                if i % per_page == 0:
+                    items.append(curritem)
+                    curritem = EmbedItem(
+                        title="Tag(s) encontrada(s) em yande.re"
                     )
 
-        return result
+            if i % per_page != 0:
+                items.append(curritem)
 
-    async def search_for_post(self, tags, page=1, limit=0):
-        domain = self._bot.config.get(f"external.yandere.api_domain")
-        endpoint = self._bot.config.get(f"external.yandere.api_getpost")
+            await EmbedSlide(items, message).send_and_wait(bot)
+        else:
+            await bot.feedback(message, navibot.WARNING, text=f"Nenhuma tag foi encontrada")
 
-        return await self._bot.http.fetch_json(f"https://{domain}/{endpoint}", params={
-            "tags": tags, 
-            "limit": limit, 
-            "page": page
-        })
+
+    elif "post" == args[1]:
+        
+        page = 1
+        
+        try:
+            page = int(flags["page"])
+        except (KeyError, ValueError):
+            pass
+
+        search = " ".join(args[2:] if len(args) > 2 else "")
+
+        result = await api.search_for_post(search, limit=bot.config.get(f"external.{handler.name}.max_allowed_posts_per_page"), page=page)
+        
+        domain = bot.config.get(f"external.{handler.name}.api_domain")
+        postshow = bot.config.get(f"external.{handler.name}.api_postshow")
+        disablensfw = True
+
+        currsettings = await bot.guildsettings.get_settings(message.guild)
+
+        if "disable_nsfw" in currsettings:
+            disablensfw = currsettings["disable_nsfw"]
+
+        if len(result) > 0:
+            items = []
+
+            for post in result:
+                if not disablensfw or post['rating'] == "s":
+                    items.append(EmbedItem(
+                        title=f"{post['id']}",
+                        url=f"https://{domain}/{postshow}{post['id']}",
+                        description=f"""
+    `{post['tags']}`
+    Ver [amostra]({post['sample_url']}) ({post['sample_width']}x{post['sample_height']}) ({naviuteis.bytes_string(post['sample_file_size'])})
+    Ver [original]({post['file_url']}) ({post['width']}x{post['height']}) ({post['file_ext']}, {naviuteis.bytes_string(post['file_size'])})
+    """,
+                        author=f"Alguns resultados podem estar ocultos devido as configurações de conteúdo." if disablensfw else "",
+                        image=f"{post['preview_url']}",
+                    ))
+
+            if len(items) > 0:
+                await EmbedSlide(items, message).send_and_wait(bot)
+            else:
+                await bot.feedback(message, navibot.WARNING, text=f"Nenhuma imagem pode ser exibida devido as configurações de conteúdo.")
+        else:
+            await bot.feedback(message, navibot.WARNING, text=f"Nenhuma imagem foi encontrada para o conjunto de tags:\n`{search}`")
+    else:
+        await bot.feedback(message, navibot.COMMAND_INFO, usage=handler)
+
+LISTEN = {
+    "on_ready": [callbackCreateYandereApiInstance]
+}

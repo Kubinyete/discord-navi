@@ -10,6 +10,7 @@ A Navi é um bot experimental escrito utilizando a biblioteca discord.py por raz
 * Python >= 3.7
 * discord.py
 * aiohttp
+* databases[mysql]
 
 ## Como configurar?
 
@@ -23,7 +24,7 @@ A configuração do bot pode ser encontrada no arquivo de exemplo `config.json` 
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
 		"bot_playing_delay": 120,
 		"bot_modules": [
-			"modules.commands", 
+			"modules.core", 
 		],
 		"log_path": ""
 	}
@@ -37,14 +38,9 @@ A maioria dos campos são auto-explicativos, com excessão do `bot_playing_delay
 Por razões de organização, é recomendado construir um conjunto de comandos sobre uma espécie de modulo, todos os modulos são preferêncialmente guardados em `modules/` como um modulo nativo do python. Segue abaixo um modulo de exemplo contendo o comando `helloworld`:
 
 ```py
-# modules/commands_helloworld.py
+# modules/elloworld.py
 import navibot
 
-# bot: navibot.NaviBot
-# message: discord.Message
-# args: list
-# flags: dict
-# handler: naviclient.NaviCommand
 async def command_helloworld(bot, message, args, flags, handler):
     await bot.feedback(message, navibot.SUCCESS, text=f"Olá mundo {message.author.name}!")
 
@@ -60,26 +56,21 @@ Ao término do modulo, será necessário atualizar a lista de modulos a serem ca
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
 		"bot_playing_delay": 120,
 		"bot_modules": [
-			"modules.commands", 
-			"modules.commands_helloworld"
+			"modules.core", 
+			"modules.helloworld"
 		],
 		"log_path": ""
 	}
 }
 ```
 
-## TODO (em modificação constante)
+### TODO
 
-### FEATURES - (?) são apenas conceitos a serem explorados
-
-- [ ] MODULO: Integração com a API Danbooru/Safebooru semelhante a já implementada.
-- [ ] MODULO: Modulo de gerênciamento de progressão dos usuários, EXP/PONTOS/PERFIL.
-- [x] BOT: Preferências e variáveis definidas em um contexto diferente para cada Guild, integrado à um banco de dados local.
-
-- [ ] MODULO: (?) Integração com a API AniList (possibilidade de integrar várias ideias; buscar personagens ou animes; perfil com top animes/personagens do usuário através do bot).
-- [ ] BOT: (?) Criação de um script launcher, capaz de atualizar o bot, alterar configurações, gerênciar o banco de dados relacionado e inclusive adicionar novos modulos de um repositório github.
-
-### REWRITE
-
-- [ ] QUALIDADE: Desacoplar a CLI do núcleo do bot presente em navibot.NaviBot, tornar algo totalmente separado que não necessite de uma modificação na classe principal, pode ser necessário uma total reescrita do navilog.LogManager.
-- [ ] BUG: Verificar BUGs com o comando reload (recarregamento de modulos no Python é algo extremamente complexo e difícil de fazer, pode ser que nunca será arrumado ou será retirado por completo)
+- [x] Verificar BUGs com o comando reload (recarregamento de modulos no Python é algo extremamente complexo e difícil de fazer, pode ser que nunca será arrumado ou será retirado por completo)
+- [x] Preferências e variáveis definidas em um contexto diferente para cada Guild, integrado à um banco de dados local.
+- [x] Verificar como implementar a verificação de permissão de execução dos comandos, quais usuários tem permissão.
+- [ ] Modulo de gerênciamento de progressão dos usuários, EXP/PONTOS/PERFIL.
+- [ ] Modulo de integração com a API Danbooru/Safebooru.
+- [ ] Integração com a API AniList (possibilidade de integrar várias ideias; buscar personagens ou animes; perfil com top animes/personagens do usuário através do bot).
+- [ ] Criação de um script launcher (capaz de atualizar o bot, alterar configurações, gerênciar o banco de dados relacionado e inclusive adicionar novos modulos de um repositório github).
+- [ ] Desacoplar a CLI do núcleo do bot presente em navibot.NaviBot, tornar algo totalmente separado que não necessite de uma modificação na classe principal, pode ser necessário uma total reescrita do navilog.LogManager.
