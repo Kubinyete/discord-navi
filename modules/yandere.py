@@ -2,7 +2,7 @@ import navibot
 import naviuteis
 from navibot import EmbedSlide
 from navibot import EmbedItem
-from modules.lib.yandereapi import YandereApi
+from modules.libs.yandereapi import YandereApi
 
 async def callbackCreateYandereApiInstance(bot):
     await YandereApi.get_instance(bot).load_tag_summary()

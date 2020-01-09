@@ -3,7 +3,7 @@ import asyncio
 import navibot
 from navibot import EmbedSlide
 from navibot import EmbedItem
-from modules.lib.osuapi import OsuApi
+from modules.libs.osuapi import OsuApi
 
 async def command_osu(bot, message, args, flags, handler):
 	if len(args) < 3:
