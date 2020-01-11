@@ -32,15 +32,13 @@ async def command_osu(bot, message, args, flags, handler):
 		if len(user) > 0:
 			user = user[0]
 
-			domain = bot.config.get(f"external.{handler.name}.api_domain")
-			assets = bot.config.get(f"external.{handler.name}.api_assets")
 			naviresources = bot.config.get(f"external.{handler.name}.rank_resources_url")
 
 			items = [EmbedItem(
 				title=f"{user['username']}",
 				description=f"**#{user['pp_rank']}** (:flag_{user['country'].lower()}: **#{user['pp_country_rank']}**)",
-				url=f"https://{domain}/u/{user['user_id']}",
-				thumbnail=f"https://{assets}/{user['user_id']}",
+				url=f"https://osu.ppy.sh/u/{user['user_id']}",
+				thumbnail=f"https://a.ppy.sh/{user['user_id']}",
 				author=f"Mova o slide para ver as melhores pontuações de {user['username']}",
 				fields=[
 					("Join date", user['join_date'], True),
@@ -52,7 +50,11 @@ async def command_osu(bot, message, args, flags, handler):
 				]
 			)]
 
-			user_best = await api.get_user_best_v2(user['user_id'], modestr=modestrv2, limit=bot.config.get(f"external.{handler.name}.max_allowed_best_scores_per_user"))
+			limit = bot.config.get(f"external.{handler.name}.max_allowed_best_scores_per_user")
+			if not limit:
+				limit = 10
+				
+			user_best = await api.get_user_best_v2(user['user_id'], modestr=modestrv2, limit=limit)
 
 			for score in user_best:
 				beatmap = score['beatmap']
@@ -75,43 +77,5 @@ async def command_osu(bot, message, args, flags, handler):
 			await EmbedSlide(items, message).send_and_wait(bot)
 		else:
 			await bot.feedback(message, navibot.WARNING, text="Não foi encontrado nenhum usuário com o nome informado")
-	# elif "beatmap" == args[1]:
-	# 	beatmapsets_search = await api.search_beatmapsets_v2("%20".join(args[2:]), modeid=modeid)
-
-	# 	domain = bot.config.get("external.osuv2.api_domain")
-		
-	# 	cursor = beatmapsets_search['cursor']
-	# 	beatmapsets = beatmapsets_search['beatmapsets']
-	# 	total = beatmapsets_search['total']
-
-	# 	if total > 0:
-	# 		items = []
-
-	# 		for beatmapset in beatmapsets:
-	# 			fields = []
-
-	# 			for beatmapdiff in beatmapset['beatmaps']:
-	# 				fields.append(
-	# 					(
-	# 						f"[{beatmapdiff['version']}] ({beatmapdiff['mode']})", 
-	# 						f"AR: {beatmapdiff['ar']}, OD: {beatmapdiff['accuracy']}, CS: {beatmapdiff['cs']}, HP: {beatmapdiff['drain']}, Stars: :star: {beatmapdiff['difficulty_rating']}"
-	# 					)
-	# 				)
-
-	# 			fields.append(("Creator", beatmapset['creator'] if beatmapset['creator'] else "Not available", True))
-	# 			fields.append(("BPM", beatmapset['bpm'] if beatmapset['bpm'] else "Not available", True))
-	# 			fields.append(("Source", beatmapset['source'] if beatmapset['source'] else "Not available", True))
-	# 			fields.append(("Download", f"[Download beatmapset](https://{domain}/beatmapsets/{beatmapset['id']}/download)" if not beatmapset['availability']['download_disabled'] else "This beatmapset is no longer available for download.", True))
-
-	# 			items.append(EmbedItem(
-	# 				title=f"{beatmapset['title']} por {beatmapset['artist']}",
-	# 				url=f"https://{domain}/beatmapsets/{beatmapset['id']}",
-	# 				image=beatmapset['covers']['card'],
-	# 				fields=fields
-	# 			))
-
-	# 		await EmbedSlide(items, message).send_and_wait(bot)
-	# 	else:
-	# 		await bot.feedback(message, navibot.WARNING, text="Não foi encontrado nenhum beatmapset")
 	else:
 		await bot.feedback(message, navibot.COMMAND_INFO, usage=handler)

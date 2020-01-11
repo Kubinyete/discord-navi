@@ -20,12 +20,8 @@ class YandereApi:
         """Carrega todas as tags disponíveis para busca, armazena as mesmas em um buffer para evitar estresse.
         """
 
-        domain = self._bot.config.get(f"external.yandere.api_domain")
-        endpoint = self._bot.config.get(f"external.yandere.api_gettagsummary")
-
-        self._bot.log.write(f"YandereApi: Carregando sumário de tags através do endpoint '{domain}/{endpoint}'", logtype=navilog.DEBUG)
-
-        json = await self._bot.http.fetch_json(f"https://{domain}/{endpoint}")
+        self._bot.log.write(f"YandereApi: Carregando sumário de tags através do endpoint 'yande.re/tag/summary.json'", logtype=navilog.DEBUG)
+        json = await self._bot.http.fetch_json(f"https://yande.re/tag/summary.json")
 
         try:
             taggroups = json["data"].split(" ")
@@ -76,10 +72,7 @@ class YandereApi:
         return result
 
     async def search_for_post(self, tags, page=1, limit=0):
-        domain = self._bot.config.get(f"external.yandere.api_domain")
-        endpoint = self._bot.config.get(f"external.yandere.api_getpost")
-
-        return await self._bot.http.fetch_json(f"https://{domain}/{endpoint}", params={
+        return await self._bot.http.fetch_json(f"https://yande.re/post.json", params={
             "tags": tags, 
             "limit": limit, 
             "page": page

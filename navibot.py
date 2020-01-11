@@ -351,10 +351,9 @@ class EmbedSlide:
 		bot.client.remove("on_reaction_add", self.callbackEmbedSlideReact, self._callback_name)
 
 class GuildSettingsManager:
-	def __init__(self, bot, default_global_settings={}):
+	def __init__(self, bot):
 		self._guilds = {}
 		self._bot = bot
-		self.default_global_settings = default_global_settings
 
 	def get_all_keys(self):
 		return self._guilds.keys()
@@ -363,15 +362,25 @@ class GuildSettingsManager:
 		return await self._bot.get_database_connection()
 		
 	async def get_settings(self, guild):
+		default_global_settings = self._bot.config.get(f"database.guild_settings.default_global_guild_settings")
+
 		if guild.id in self._guilds.keys():
-			return self._guilds[guild.id]
+			if self._guilds[guild.id].keys() == default_global_settings.keys():
+				return self._guilds[guild.id]
+			else:
+				# Obsoleto
+				return dict(default_global_settings)
 		else:
 			await self.fetch(guild)
 
 			if guild.id in self._guilds.keys():
-				return self._guilds[guild.id]
+				if self._guilds[guild.id].keys() == default_global_settings.keys():
+					return self._guilds[guild.id]
+				else:
+					# Obsoleto
+					return dict(default_global_settings)
 			else:
-				return dict(self.default_global_settings)
+				return dict(default_global_settings)
 
 	async def update_settings(self, guild, settings):
 		conn = await self.get_database_connection()
@@ -458,7 +467,7 @@ class NaviBot:
 
 		self._active_database_connection = None
 
-		self.guildsettings = GuildSettingsManager(self, self.config.get(f"database.guild_settings.default_global_guild_settings"))
+		self.guildsettings = GuildSettingsManager(self)
 
 		# Atualiza novamente o path para o especificado no arquivo de configurações
 		self.log.set_path(self.config.get(f"global.log_path"))
@@ -506,7 +515,7 @@ class NaviBot:
 						NaviCommand(
 							value, 
 							name=atv, 
-							usage=self.config.get(f"cli.commands.descriptions.{atv}.usage")
+							usage=self.config.get(f"cli.{atv}.usage")
 						)
 					)
 				elif key.startswith("command_owner_"):
@@ -518,14 +527,14 @@ class NaviBot:
 							value, 
 							name=atv, 
 							owneronly=True, 
-							usage=self.config.get(f"commands.descriptions.{atv}.usage"), 
-							description=self.config.get(f"commands.descriptions.{atv}.text")
+							usage=self.config.get(f"commands.{atv}.usage"), 
+							description=self.config.get(f"commands.{atv}.text")
 						)
 					)
 				elif key.startswith("command_"):
 					atv = key[len("command_"):]
 
-					cmdperms = self.config.get(f"commands.descriptions.{atv}.permissions")
+					cmdperms = self.config.get(f"commands.{atv}.permissions")
 
 					self.commands.set(
 						atv, 
@@ -533,8 +542,8 @@ class NaviBot:
 							value, 
 							name=atv, 
 							owneronly=False, 
-							usage=self.config.get(f"commands.descriptions.{atv}.usage"), 
-							description=self.config.get(f"commands.descriptions.{atv}.text"),
+							usage=self.config.get(f"commands.{atv}.usage"), 
+							description=self.config.get(f"commands.{atv}.text"),
 							permissions=cmdperms if cmdperms else []
 						)
 					)
@@ -560,7 +569,10 @@ class NaviBot:
 	
 	def _load_module(self, modulo):
 		if modulo in sys.modules:
-			importlib.reload(sys.modules[modulo])
+			#importlib.reload(sys.modules[modulo])
+
+			del sys.modules[modulo]
+			importlib.import_module(modulo)
 		else:
 			try:
 				importlib.import_module(modulo)
@@ -582,6 +594,8 @@ class NaviBot:
 		self.config.load()
 
 		self.prefix = self.config.get(f"global.bot_prefix")
+		if not self.prefix:
+			self.prefix = ";;"
 		
 		# Carrega os callbacks do núcleo novamente...
 		self._load_events_from_module(self._load_module("navicallbacks"))
@@ -652,7 +666,7 @@ class NaviBot:
 		    bool: Retorna se é um autor definido.
 		"""
 
-		return author.id in self.config.get(f"commands.owners")
+		return author.id in self.config.get(f"global.bot_owners")
 
 	def start(self):
 		"""Inicia o bot, bloqueando a execução de outros procedimentos e executando somente o loop de eventos.
@@ -710,7 +724,8 @@ class NaviBot:
 			embeditem (EmbedItem, optional): O EmbedItem a ser gerado e enviado como resposta.
 		"""
 
-		await message.add_reaction(feedback_string(feedback))
+		if feedback:
+			await message.add_reaction(feedback_string(feedback))
 
 		if embeditem:
 			await message.channel.send(embed=embeditem.generate())

@@ -19,8 +19,11 @@ async def command_yandere(bot, message, args, flags, handler):
 
         if len(tags) > 0:
             items = []
-            per_page = bot.config.get(f"external.{handler.name}.max_allowed_tags_per_page")
             
+            per_page = bot.config.get(f"external.{handler.name}.max_allowed_tags_per_page")
+            if not per_page:
+                per_page = 20
+
             i = 0
             curritem = EmbedItem(
                 title="Tag(s) encontrada(s) em yande.re",
@@ -55,16 +58,17 @@ async def command_yandere(bot, message, args, flags, handler):
 
         search = " ".join(args[2:] if len(args) > 2 else "")
 
-        result = await api.search_for_post(search, limit=bot.config.get(f"external.{handler.name}.max_allowed_posts_per_page"), page=page)
+        limit = bot.config.get(f"external.{handler.name}.max_allowed_posts_per_page")
+        if not limit:
+            limit = 50
+
+        result = await api.search_for_post(search, limit=limit, page=page)
         
-        domain = bot.config.get(f"external.{handler.name}.api_domain")
-        postshow = bot.config.get(f"external.{handler.name}.api_postshow")
         disablensfw = True
 
         currsettings = await bot.guildsettings.get_settings(message.guild)
-
-        if "disable_nsfw" in currsettings:
-            disablensfw = currsettings["disable_nsfw"]
+        if "nsfw_disable" in currsettings:
+            disablensfw = currsettings["nsfw_disable"]
 
         if len(result) > 0:
             items = []
@@ -73,7 +77,7 @@ async def command_yandere(bot, message, args, flags, handler):
                 if not disablensfw or post['rating'] == "s":
                     items.append(EmbedItem(
                         title=f"{post['id']}",
-                        url=f"https://{domain}/{postshow}{post['id']}",
+                        url=f"https://yande.re/post/show/{post['id']}",
                         description=f"""
     `{post['tags']}`
     Ver [amostra]({post['sample_url']}) ({post['sample_width']}x{post['sample_height']}) ({naviuteis.bytes_string(post['sample_file_size'])})

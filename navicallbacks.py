@@ -13,21 +13,31 @@ async def callbackLog(bot, message=None):
 		bot.log.write(message, logtype=navilog.MESSAGE)
 
 async def callbackActivity(bot, kwargs={}):
+	activities = bot.config.get(f"global.bot_playing")
+	delay = bot.config.get(f"global.bot_playing_delay")
+
 	if not "loop" in kwargs:
+		if not activities or not delay:
+			return
+
 		kwargs["loop"] = True
 		kwargs["playing_index"] = 0
-		bot.tasks.schedule(NaviRoutine(callbackActivity, timespan=(bot.config.get(f"global.bot_playing_delay"), "s"), kwargs=kwargs))
+		kwargs["task"] = NaviRoutine(callbackActivity, timespan=(delay, "s"))
+		kwargs["task"].kwargs = kwargs
+		bot.tasks.schedule(kwargs["task"])
 		return
 
-	activities = bot.config.get(f"global.bot_playing")
-
 	if activities != None:
-		if kwargs["playing_index"] >= len(activities):
-			kwargs["playing_index"] = 0
+		if isinstance(activities, list):
+			if kwargs["playing_index"] >= len(activities):
+				kwargs["playing_index"] = 0
 
-		await bot.client.change_presence(activity=discord.Game(activities[kwargs["playing_index"]]))
+			await bot.client.change_presence(activity=discord.Game(activities[kwargs["playing_index"]]))
+			
+			kwargs["playing_index"] = kwargs["playing_index"] + 1
+		else:
+			await bot.client.change_presence(activity=discord.Game(activities))
 
-		kwargs["playing_index"] = kwargs["playing_index"] + 1
 
 async def callbackError(bot, excInfo):
 	bot.handle_exception(excInfo)

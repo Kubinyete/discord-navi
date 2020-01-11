@@ -68,7 +68,7 @@ async def command_roll(bot, message, args, flags, handler):
 	if rollmax < rollmin:
 		await bot.feedback(message, feedback=navibot.WARNING, text=f"A faixa de valores {rollmin} - {rollmax} informada precisa ser válida.")
 	else:
-		await bot.feedback(message, feedback=navibot.SUCCESS, text=f"**{message.author.name}** girou o número {random.randint(rollmin, rollmax)}.")
+		await bot.feedback(message, feedback=navibot.SUCCESS, text=f"{random.randint(rollmin, rollmax)}")
 
 async def command_avatar(bot, message, args, flags, handler):
 	if len(message.mentions) != 1:
@@ -122,7 +122,9 @@ async def command_remind(bot, message, args, flags, handler):
 		if segundos == 0:
 			await bot.feedback(message, navibot.WARNING, text="O argumento '--time' não está em um formato valido")
 		else:
-			limite = bot.config.get("commands.descriptions.{}.max_allowed_per_user".format(handler.name))
+			limite = bot.config.get(f"commands.{handler.name}.max_allowed_per_user")
+			if not limite:
+				limite = 5
 
 			if tarefas and len(tarefas) >= limite:
 				await bot.feedback(message, navibot.WARNING, text="Você não pode registrar mais lembretes, pois atingiu o limite máximo de {}".format(limite))
@@ -141,7 +143,9 @@ async def command_poll(bot, message, args, flags, handler):
 	question = args[1]
 	answers = args[2:]
 
-	limit = bot.config.get(f"commands.descriptions.{handler.name}.max_allowed_answers")
+	limit = bot.config.get(f"commands.{handler.name}.max_allowed_answers")
+	if not limit:
+		limit = 6
 
 	if len(answers) < 2:
 		await bot.feedback(message, navibot.WARNING, text="É preciso informar no mínimo duas respostas para iniciar a votação")
@@ -161,20 +165,23 @@ async def command_poll(bot, message, args, flags, handler):
 			p = Poll(question, answers, message, timeout=seconds)
 			await p.send_and_wait(bot)
 
-async def command_guildsettings(bot, message, args, flags, handler):
+async def command_config(bot, message, args, flags, handler):
 	currsettings = await bot.guildsettings.get_settings(message.guild)
 
 	if len(args) < 2:
 		items = []
-		per_page = bot.config.get(f"commands.descriptions.{handler.name}.max_allowed_settings_per_page")
 		
+		per_page = bot.config.get(f"commands.{handler.name}.max_allowed_settings_per_page")
+		if not per_page:
+			per_page = 10
+
 		i = 0
 		curritem = EmbedItem(
 			title="Chaves de configuração da Guild",
 		)
 
 		for key, value in currsettings.items():
-			curritem.description += f'`{key} = "{value}"`\n'
+			curritem.description += f'`{key}` = {discord.utils.escape_markdown(str(value))}\n'
 			i += 1
 
 			if i % per_page == 0:
@@ -193,7 +200,7 @@ async def command_guildsettings(bot, message, args, flags, handler):
 	else:
 		if len(args) > 2 and args[1] == "get":
 			try:
-				await bot.feedback(message, feedback=navibot.SUCCESS, text=f'`{args[2]} = "{currsettings[args[2]]}"`\n')
+				await bot.feedback(message, feedback=navibot.SUCCESS, text=f'`{args[2]}` = {discord.utils.escape_markdown(str(currsettings[args[2]]))}\n')
 			except KeyError:
 				await bot.feedback(message, feedback=navibot.WARNING, text=f"A chave `{args[2]}` não foi encontrada")
 		elif len(args) > 3 and args[1] == "set":
