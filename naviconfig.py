@@ -6,8 +6,8 @@ class ConfigManager:
 		"""Componente responsável por carregar, armazenar e alterar as informações do arquivo de configurações.
 		
 		Args:
-		    path (str): O caminho do arquivo de configurações JSON a ser utilizado.
-		    bot (TYPE): A instância do bot responsável.
+			path (str): O caminho do arquivo de configurações JSON a ser utilizado.
+			bot (TYPE): A instância do bot responsável.
 		"""
 		
 		self._bot = bot
@@ -33,10 +33,10 @@ class ConfigManager:
 		"""Obtém uma chave de configuração.
 		
 		Args:
-		    indice (str): O caminho que representa a chave de configuração, de forma separada por pontos: chavepai.chavefilho.meuvalor
+			indice (str): O caminho que representa a chave de configuração, de forma separada por pontos: chavepai.chavefilho.meuvalor
 		
 		Returns:
-		    Any: O tipo desejado encontrado pela chave, caso falhe, retornará uma string vazia equivalente à "".
+			Any: O tipo desejado encontrado pela chave, caso falhe, retornará uma string vazia equivalente à "".
 		"""
 
 		chaves = indice.split(".")
@@ -58,11 +58,11 @@ class ConfigManager:
 		"""Atualiza o valor de uma chave.
 		
 		Args:
-		    indice (str): O caminho que representa a chave de configuração.
-		    val (Any): O valor a ser atribuido.
+			indice (str): O caminho que representa a chave de configuração.
+			val (Any): O valor a ser atribuido.
 		
 		Returns:
-		    bool: A alteração foi feita.
+			bool: A alteração foi feita.
 		"""
 
 		chaves = indice.split(".")

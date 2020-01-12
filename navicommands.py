@@ -6,7 +6,7 @@ class CommandDictionary:
 		"""Dicionário de comandos do bot, será responsável por guardar diversos NaviCommand que contém as funções de comando.
 		
 		Args:
-		    bot (NaviBot): A instância do bot responsável.
+			bot (NaviBot): A instância do bot responsável.
 		"""
 
 		self._commands = {}
@@ -16,10 +16,10 @@ class CommandDictionary:
 		"""Retorna o comando de acordo com a chave informada.
 		
 		Args:
-		    key (str): A chave que representa o comando.
+			key (str): A chave que representa o comando.
 		
 		Returns:
-		    NaviCommand, None: Retorna o comando associado a chave, caso não exista, retorna None.
+			NaviCommand, None: Retorna o comando associado a chave, caso não exista, retorna None.
 		"""
 
 		try:
@@ -31,8 +31,8 @@ class CommandDictionary:
 		"""Atualiza a chave com um novo comando.
 		
 		Args:
-		    key (str): A chave que representa o comando.
-		    handler (NaviCommand): O novo comando.
+			key (str): A chave que representa o comando.
+			handler (NaviCommand): O novo comando.
 		"""
 
 		self._commands[key] = handler
@@ -41,7 +41,7 @@ class CommandDictionary:
 		"""Retorna o objeto interno que detém todos os comandos.
 		
 		Returns:
-		    dict: O dicionário de comandos.
+			dict: O dicionário de comandos.
 		"""
 		
 		return self._commands

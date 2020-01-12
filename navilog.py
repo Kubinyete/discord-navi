@@ -1,11 +1,11 @@
 """Define todos os tipos de logs que o bot suporta através do seu LogManager.
 
 Attributes:
-    DEBUG (int): Constante que define um log do tipo DEBUG, não será gravado em disco.
-    INFO (int): Constante que define um log de INFORMAÇÃO.
-    WARNING (int): Constante que define um log de AVISO.
-    ERROR (int): Constante que define um log de ERRO.
-    MESSAGE (int): Constante que define um log de uma MENSAGEM.
+	DEBUG (int): Constante que define um log do tipo DEBUG, não será gravado em disco.
+	INFO (int): Constante que define um log de INFORMAÇÃO.
+	WARNING (int): Constante que define um log de AVISO.
+	ERROR (int): Constante que define um log de ERRO.
+	MESSAGE (int): Constante que define um log de uma MENSAGEM.
 """
 
 from datetime import datetime
@@ -32,10 +32,10 @@ def logtype_string(logtype):
 	"""Retorna a representação em string da constante que define o tipo de LOG.
 	
 	Args:
-	    logtype (int): A constante que define o tipo de log.
+		logtype (int): A constante que define o tipo de log.
 	
 	Returns:
-	    str: Representação do tipo de log em string.
+		str: Representação do tipo de log em string.
 	"""
 
 	return LOGTYPE_STRING[logtype]
@@ -50,8 +50,8 @@ class LogManager:
 		"""Componente responsável por efetuar as operações de log do bot.
 		
 		Args:
-		    path (str): O caminho do arquivo de log a ser utilizado.
-		    bot (NaviBot): A instância do bot responsável.
+			path (str): O caminho do arquivo de log a ser utilizado.
+			bot (NaviBot): A instância do bot responsável.
 		"""
 
 		self._file = None
@@ -64,7 +64,7 @@ class LogManager:
 		"""Retorna em que contexto o bot está atualmente em forma de string.
 		
 		Returns:
-		    str: O contexto atual, caso não escolhido, retornará uma string vazia.
+			str: O contexto atual, caso não escolhido, retornará uma string vazia.
 		"""
 
 		if isinstance(self._bot.cli_context, discord.User):
@@ -80,7 +80,7 @@ class LogManager:
 		"""Atualiza o caminho do arquivo de log.
 		
 		Args:
-		    path (str): Caminho a ser utilizado, caso será equivalente a "", a função de log será desativado.
+			path (str): Caminho a ser utilizado, caso será equivalente a "", a função de log será desativado.
 		"""
 
 		self._path = path
@@ -101,7 +101,7 @@ class LogManager:
 		"""Desenha na STDOUT como está o estado do input gráficamente.
 		
 		Args:
-		    keep_input (bool, optional): Registra um input permanentemente na linha acima, simulando o envio de comando.
+			keep_input (bool, optional): Registra um input permanentemente na linha acima, simulando o envio de comando.
 		"""
 
 		if len(self._bot.cli_buffer) < self._cli_chars_on_screen:
@@ -131,8 +131,8 @@ class LogManager:
 		"""Escreve, de acordo com o nivel/tipo de log, a mensagem.
 		
 		Args:
-		    msg (Message, str): Uma mensagem do discord ou string a ser escrita.
-		    logtype (int, optional): O tipo/nível de log.
+			msg (Message, str): Uma mensagem do discord ou string a ser escrita.
+			logtype (int, optional): O tipo/nível de log.
 		"""
 
 		msg_buffer = ""

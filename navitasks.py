@@ -6,7 +6,7 @@ class TaskScheduler:
 		"""Componente composto de um dicionário de rotinas, capaz de agendar uma rotina para ser executada de acordo com seu intervalo.
 		
 		Args:
-		    bot (NaviBot): A instância do bot em questão.
+			bot (NaviBot): A instância do bot em questão.
 		"""
 		
 		self._tasks = {}
@@ -16,9 +16,9 @@ class TaskScheduler:
 		"""Recebe uma tarefa para ser agendada, ou seja, rodar em um loop a cada intervalo de tempo determinado.
 		
 		Args:
-		    task (NaviRoutine): A rotina a ser rodada constantemente.
-		    key (str, optional): Chave que identifica qual o conjunto de rotinas, caso omitida, será utilizado task.name.
-		    append (bool, optional): Permitir mais de única rotina em um conjunto de rotinas.
+			task (NaviRoutine): A rotina a ser rodada constantemente.
+			key (str, optional): Chave que identifica qual o conjunto de rotinas, caso omitida, será utilizado task.name.
+			append (bool, optional): Permitir mais de única rotina em um conjunto de rotinas.
 		"""
 
 		# Se a chave não for informada, utilizar o próprio nome da tarefa
@@ -41,8 +41,8 @@ class TaskScheduler:
 		"""Procedimento utilizado para continuar executando em loop a tarefa/rotina.
 		
 		Args:
-		    task (NaviRoutine): A rotina a ser rodada constantemente.
-		    key (str): Chave pertencente.
+			task (NaviRoutine): A rotina a ser rodada constantemente.
+			key (str): Chave pertencente.
 		"""
 
 		try:
@@ -71,8 +71,8 @@ class TaskScheduler:
 		"""Pede o cancelamento da tarefa, caso esteja em execução e também retira do conjunto de tarefas pertencente.
 		
 		Args:
-		    task (NaviRoutine): A rotina a ser cancelada.
-		    key (str, optional): A chave que representa o conjunto, caso omitida, será utilizado por padrão task.name.
+			task (NaviRoutine): A rotina a ser cancelada.
+			key (str, optional): A chave que representa o conjunto, caso omitida, será utilizado por padrão task.name.
 		"""
 
 		if key is None:
@@ -96,10 +96,10 @@ class TaskScheduler:
 		"""Retorna a lista de tarefas presente em uma chave.
 		
 		Args:
-		    key (str): A chave presentando o conjunto.
+			key (str): A chave presentando o conjunto.
 		
 		Returns:
-		    list(NaviRoutine), None: Uma lista de rotinas, caso não exista nenhuma na determinada chave, retorna None.
+			list(NaviRoutine), None: Uma lista de rotinas, caso não exista nenhuma na determinada chave, retorna None.
 		"""
 
 		try:
@@ -111,7 +111,7 @@ class TaskScheduler:
 		"""Retorna todas as chaves existentes.
 		
 		Returns:
-		    list(str): Lista de chaves presentes.
+			list(str): Lista de chaves presentes.
 		"""
 
 		return self._tasks.keys()

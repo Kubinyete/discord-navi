@@ -14,7 +14,7 @@ class NaviClient(discord.Client):
 		"""Classe cliente responsável por comunicar com a API do discord.
 		
 		Args:
-		    bot (NaviBot): A instância do bot responsável.
+			bot (NaviBot): A instância do bot responsável.
 		"""
 
 		super().__init__()
@@ -69,9 +69,9 @@ class NaviClient(discord.Client):
 		"""Atribui á um evento um novo callback a ser executado.
 		
 		Args:
-		    event (str): O nome do evento.
-		    callback (function): A coroutine a ser executada (encapsulada em um objeto NaviCallback)
-		    name (str, optional): O nome para tal callback, caso omitido, será utilizado o próprio nome da coroutine.
+			event (str): O nome do evento.
+			callback (function): A coroutine a ser executada (encapsulada em um objeto NaviCallback)
+			name (str, optional): O nome para tal callback, caso omitido, será utilizado o próprio nome da coroutine.
 		"""
 
 		for nc in self._events[event]:
@@ -85,9 +85,9 @@ class NaviClient(discord.Client):
 		"""Remove de um evento um callback.
 		
 		Args:
-		    event (str): O nome do evento.
-		    callback (function): A corutine a ser removida.
-		    name (None, optional): Procurar por um nome específico atrelado ao callback.
+			event (str): O nome do evento.
+			callback (function): A corutine a ser removida.
+			name (None, optional): Procurar por um nome específico atrelado ao callback.
 		"""
 
 		for nc in self._events[event]:
@@ -98,7 +98,7 @@ class NaviClient(discord.Client):
 		"""Remove todos os callbacks atribuidos a um evento.
 		
 		Args:
-		    event (str): O nome do evento.
+			event (str): O nome do evento.
 		"""
 
 		self._events[event] = []
@@ -123,7 +123,7 @@ class NaviClient(discord.Client):
 		"""Retorna o nome de todos os eventos disponíveis.
 		
 		Returns:
-		    list(str): Os nomes de eventos.
+			list(str): Os nomes de eventos.
 		"""
 
 		return self._events.keys()
@@ -132,10 +132,10 @@ class NaviClient(discord.Client):
 		"""Retorna uma lista de callbacks associados a um evento.
 		
 		Args:
-		    event (str): O nome do evento.
+			event (str): O nome do evento.
 		
 		Returns:
-		    list(NaviCallback): A lista de callbacks encapsuladas em objetos NaviCallback
+			list(NaviCallback): A lista de callbacks encapsuladas em objetos NaviCallback
 		"""
 
 		return self._events[event]
@@ -144,7 +144,7 @@ class NaviClient(discord.Client):
 		"""Inicia o bot em modo sincrono e permanence executando o loop internamente.
 		
 		Args:
-		    token (str): O token de autenticação do bot.
+			token (str): O token de autenticação do bot.
 		"""
 
 		self.run(token)
@@ -160,8 +160,8 @@ class NaviCallback:
 		"""Objeto que representa uma função encapsulada.
 		
 		Args:
-		    callback (function): A função em questão, deverá ser uma coroutine.
-		    name (str, optional): Apelido dado para tal função.
+			callback (function): A função em questão, deverá ser uma coroutine.
+			name (str, optional): Apelido dado para tal função.
 		"""
 
 		self.callback = callback
@@ -176,11 +176,11 @@ class NaviRoutine(NaviCallback):
 		"""Define uma rotina capaz de ser executada a cada intervalo de tempo.
 		
 		Args:
-		    callback (function): A função em questão, deverá ser uma coroutine.
-		    timespan (tuple(int, str)): Tuple cujo define uma quantidade em inteiro e uma string que define a unidade de tempo.
-		    name (str, optional): Apelido dado para tal função.
-		    waitfor (bool, optional): Define se deve Esperar até finalizar a execução da função.
-		    kwargs (dict, optional): Dicionário de argumentos passados diretamente para a função ao ser executada.
+			callback (function): A função em questão, deverá ser uma coroutine.
+			timespan (tuple(int, str)): Tuple cujo define uma quantidade em inteiro e uma string que define a unidade de tempo.
+			name (str, optional): Apelido dado para tal função.
+			waitfor (bool, optional): Define se deve Esperar até finalizar a execução da função.
+			kwargs (dict, optional): Dicionário de argumentos passados diretamente para a função ao ser executada.
 		"""
 
 		super().__init__(callback, name)
@@ -195,7 +195,7 @@ class NaviRoutine(NaviCallback):
 		"""Retorna em segundos o tempo gasto após a execução do callback.
 		
 		Returns:
-		    int: Um valor inteiro representando o tempo gasto de execução.
+			int: Um valor inteiro representando o tempo gasto de execução.
 		"""
 
 		return self._timespent
@@ -204,7 +204,7 @@ class NaviRoutine(NaviCallback):
 		"""Retorna o número de segundos referente à este intervalo de tempo.
 		
 		Returns:
-		    int: O número de segundos.
+			int: O número de segundos.
 		"""
 
 		return naviuteis.timespan_to_seconds(self.timespan)
@@ -213,7 +213,7 @@ class NaviRoutine(NaviCallback):
 		"""Executa o callback associado a rotina, dependendo dos atribudos, esperando o término da rotina ou não.
 		
 		Args:
-		    bot (NaviBot): O bot responsável pela execução da rotina atual.
+			bot (NaviBot): O bot responsável pela execução da rotina atual.
 		"""
 
 		if not self.waitfor:
@@ -232,11 +232,11 @@ class NaviCommand(NaviCallback):
 		"""Define um objeto encapsulador de um comando do bot.
 		
 		Args:
-		    callback (function): A função em questão, deverá ser uma coroutine.
-		    name (str, optional): Apelido dado para tal função.
-		    owneronly (bool, optional): Define se apenas pode ser executado por owners.
-		    usage (str, optional): Informações de uso.
-		    description (str, optional): Descrição detalhada.
+			callback (function): A função em questão, deverá ser uma coroutine.
+			name (str, optional): Apelido dado para tal função.
+			owneronly (bool, optional): Define se apenas pode ser executado por owners.
+			usage (str, optional): Informações de uso.
+			description (str, optional): Descrição detalhada.
 		"""
 		super().__init__(callback, name)
 
@@ -249,10 +249,10 @@ class NaviCommand(NaviCallback):
 		"""Executa o callback associado a comando sem esperar pelo término.
 		
 		Args:
-		    bot (NaviBot): O bot responsável pela execução do comando atual.
-		    message (Message): A mensagem que originou este comando.
-		    args (list(str)): A lista de argumentos já separados.
-		    flags (dict): O dicionário de flags presentes.
+			bot (NaviBot): O bot responsável pela execução do comando atual.
+			message (Message): A mensagem que originou este comando.
+			args (list(str)): A lista de argumentos já separados.
+			flags (dict): O dicionário de flags presentes.
 		"""
 
 		asyncio.get_running_loop().create_task(self.callback(bot, message, args, flags, self))

@@ -23,18 +23,31 @@ async def callbackRemind(bot, kwargs):
 
 async def command_help(bot, message, args, flags, handler):
 	if len(args) < 2:
-		helptext = "**Comandos disponíveis**\n\n"
+		naviabout = bot.config.get(f"commands.{handler.name}.navi_about")
 
+		helptext = f":information_source: Digite `{bot.prefix}{handler.name} [comando]` para obter mais informações\n\n**Comandos disponíveis**:\n"
+
+		currentmdl = ""
 		for key in bot.commands.get_commands().keys():
 			handler = bot.commands.get(key)
 
 			if bot.is_owner(message.author) or not handler.owneronly:
-				if isinstance(handler.usage, list):
-					usagef = "\n".join([f"`{key} {i}`" for i in handler.usage])
-				else:
-					usagef = f"`{key} {handler.usage}`"
+				if currentmdl != handler.callback.__module__:
+					helptext += f"\n{handler.callback.__module__}\n"
+					currentmdl = handler.callback.__module__
 
-				helptext += f"**{key}**\n{usagef}\n\n"
+				helptext += f"* `{key}`\n"
+
+		embeditem = EmbedItem(
+			title=f"NaviBot",
+			description=f"{naviabout}\n\n{helptext}",
+			footer=(
+				message.author.name, 
+				message.author.avatar_url_as(size=32)
+			)
+		)
+
+		await bot.feedback(message, feedback=navibot.SUCCESS, embeditem=embeditem)
 	else:
 		handler = bot.commands.get(args[1])
 
@@ -42,14 +55,14 @@ async def command_help(bot, message, args, flags, handler):
 			if isinstance(handler.usage, list):
 				usagef = "\n".join([f"`{args[1]} {i}`" for i in handler.usage])
 			else:
-				usagef = f"{args[1]} `{handler.usage}`"
+				usagef = f"`{args[1]} {handler.usage}`"
 
-			helptext = f"**{handler.name}**\n{usagef}\n\n{handler.description}"
+			helptext = f"**{handler.name}**\n{handler.description}\n\nUso:\n{usagef}"
 		else:
 			await bot.feedback(message, feedback=navibot.WARNING, text=f"O comando '{args[1]}' não existe.")
 			return
 
-	await bot.feedback(message, feedback=navibot.SUCCESS, text=helptext)
+		await bot.feedback(message, feedback=navibot.SUCCESS, text=helptext)
 
 async def command_roll(bot, message, args, flags, handler):
 	rollmin = 1

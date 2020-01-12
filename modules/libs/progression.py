@@ -24,6 +24,8 @@ class ProgressionManager:
 		# @TODO?
 		# Fazer um dict de cache para evitar consultas (semelhante ao GuildSettingsManager)?
 		self._bot = bot
+		self._levelup_listeners = []
+		self._blocked = {}
 
 	@staticmethod
 	def get_instance(bot=None):
@@ -49,7 +51,7 @@ class ProgressionManager:
 		if row:
 			info = MemberInfo(member)
 			info.exp = row['mem_exp']
-			info.creditos = row['mem_credits']
+			info.credits = row['mem_credits']
 			info.description = row['mem_description']
 			return info
 
@@ -100,4 +102,38 @@ class ProgressionManager:
 					"description": memberinfo.description
 				}
 			)
+
+	def block_member_changes(self, memberinfo):
+		if memberinfo.member.guild.id in self._blocked:
+			self._blocked[memberinfo.member.guild.id].append(memberinfo.member.id)
+		else:
+			self._blocked[memberinfo.member.guild.id] = [memberinfo.member.id]
+
+	def is_member_changes_blocked(self, memberinfo):
+		return memberinfo.member.guild.id in self._blocked and memberinfo.member.id in self._blocked[memberinfo.member.guild.id]
+
+	def unblock_member_changes(self, memberinfo):
+		if memberinfo.member.guild.id in self._blocked:
+			try:
+				self._blocked[memberinfo.member.guild.id].remove(memberinfo.member.id)
+
+				if not self._blocked[memberinfo.member.guild.id]:
+					del self._blocked[memberinfo.member.guild.id]
+			except ValueError:
+				pass
+
+	async def on_member_levelup(self, member):
+		for callback in self._levelup_listeners:
+			await callback(self._bot, self, member)
 		
+	def add_levelup_callback(self, callback):
+		if callback in self._levelup_listeners:
+			return
+
+		self._levelup_listeners.append(callback)
+
+	def remove_levelup_callback(self, callback):
+		try:
+			self._levelup_listeners.remove(callback)
+		except ValueError:
+			pass

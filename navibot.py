@@ -1,11 +1,11 @@
 """Modulo responsável por definir o bot.
 
 Attributes:
-    COMMAND_INFO (int): Constante que define o tipo de feedback, usado para informações de comando.
-    ERROR (int): Constante que defino o tipo de feedback de ERRO.
-    INFO (int): Constante que defino o tipo de feedback de INFORMAÇÃO.
-    SUCCESS (int): Constante que defino o tipo de feedback de SUCESSO.
-    WARNING (int): Constante que defino o tipo de feedback de AVISO.
+	COMMAND_INFO (int): Constante que define o tipo de feedback, usado para informações de comando.
+	ERROR (int): Constante que defino o tipo de feedback de ERRO.
+	INFO (int): Constante que defino o tipo de feedback de INFORMAÇÃO.
+	SUCCESS (int): Constante que defino o tipo de feedback de SUCESSO.
+	WARNING (int): Constante que defino o tipo de feedback de AVISO.
 """
 
 import asyncio
@@ -43,10 +43,10 @@ def feedback_string(feedback):
 	"""Representação do tipo de feedback em forma de string, mais específicamente emoji para reação.
 	
 	Args:
-	    feedback (int): O tipo de feedback.
+		feedback (int): O tipo de feedback.
 	
 	Returns:
-	    str: Reação correspondente.
+		str: Reação correspondente.
 	"""
 
 	if feedback == INFO:
@@ -179,15 +179,15 @@ class EmbedItem:
 		"""Define um item de uma coleção de itens de slide, possui propriedades do objeto Embed do discord.
 		
 		Args:
-		    description (str, optional): O texto da descrição.
-		    title (str, optional): O título do embed.
-		    url (str, optional): O url presente no título.
+			description (str, optional): O texto da descrição.
+			title (str, optional): O título do embed.
+			url (str, optional): O url presente no título.
 			footer (tuple(str, str?), str, optional): Uma tuple contendo (text, icon_url) ou apenas uma string.
-		    color (Colour, int, optional): A color utilizada.
-		    image (str, optional): O url da imagem a ser mostrada.
-		    thumbnail (str, optional): O url da minitura a ser mostrada.
-		    author (tuple(str, str?, str?), str, optional): Uma tuple contendo (name, url, icon_url) ou apenas uma string.
-		    fields (list(tuple(str, str, bool?)), optional): Uma lista de tuples contendo (name, value, inline)
+			color (Colour, int, optional): A color utilizada.
+			image (str, optional): O url da imagem a ser mostrada.
+			thumbnail (str, optional): O url da minitura a ser mostrada.
+			author (tuple(str, str?, str?), str, optional): Uma tuple contendo (name, url, icon_url) ou apenas uma string.
+			fields (list(tuple(str, str, bool?)), optional): Uma lista de tuples contendo (name, value, inline)
 		"""
 
 		self.description = description
@@ -246,12 +246,12 @@ class EmbedSlide:
 		"""Define um Embed navegável através de reações do usuário.
 		
 		Args:
-		    items (list(EmbedItem)): Os itens a serem mostrados, cada item é um EmbedItem.
-		    request_message (TYPE): A mensagem que originou o pedido do slide, será utilizado para enviar o embed.
-		    start (int, optional): Inicia na posição informada.
-		    timeout (int, optional): Define em segundos quanto tempo esperar por atividade de uso.
-		    right_reaction (str, optional): O emoji que deverá ser utilizado para detectar o movimento para frente.
-		    left_reaction (str, optional): O emoji que deverá ser utilizado para detectar o movimento para trás.
+			items (list(EmbedItem)): Os itens a serem mostrados, cada item é um EmbedItem.
+			request_message (TYPE): A mensagem que originou o pedido do slide, será utilizado para enviar o embed.
+			start (int, optional): Inicia na posição informada.
+			timeout (int, optional): Define em segundos quanto tempo esperar por atividade de uso.
+			right_reaction (str, optional): O emoji que deverá ser utilizado para detectar o movimento para frente.
+			left_reaction (str, optional): O emoji que deverá ser utilizado para detectar o movimento para trás.
 			restricted (bool, optional): Caso ativado, o slide será restrito à ser utilizado somente pelo solicitante da mensagem.
 		"""
 
@@ -314,7 +314,7 @@ class EmbedSlide:
 		"""Retorna o EmbedItem atual.
 		
 		Returns:
-		    EmbedItem: Item atual.
+			EmbedItem: Item atual.
 		"""
 
 		return self._items[self._index]
@@ -323,7 +323,7 @@ class EmbedSlide:
 		"""Cria e configura o embed a ser mostrado atualmente.
 		
 		Returns:
-		    Embed: O embed a ser enviado.
+			Embed: O embed a ser enviado.
 		"""
 
 		embed = self.get_current_item().generate()
@@ -335,7 +335,7 @@ class EmbedSlide:
 		"""Envia como resposta o slide, possibilitando que o usuário navegue utilizando as reações.
 		
 		Args:
-		    bot (NaviBot): O bot responsável pela instância deste slide.
+			bot (NaviBot): O bot responsável pela instância deste slide.
 		"""
 
 		embed = self.generate_current_embed()
@@ -455,8 +455,8 @@ class NaviBot:
 		"""Inicializa uma instância NaviBot.
 		
 		Args:
-		    configpath (str): O caminho utilizado para encontrar o arquivo JSON de configurações.
-		    cli (bool, optional): Habilita o uso da CLI interativa.
+			configpath (str): O caminho utilizado para encontrar o arquivo JSON de configurações.
+			cli (bool, optional): Habilita o uso da CLI interativa.
 		"""
 		self.cli_enabled = cli and platform.system() == "Linux"
 		self.cli_buffer = ""
@@ -556,7 +556,7 @@ class NaviBot:
 		"""Imprime de forma verbosa a Exception recebida.
 		
 		Args:
-		    e (Exception): A exceção a ser imprimida.
+			e (Exception): A exceção a ser imprimida.
 		"""
 		if isinstance(e, tuple):
 			exctype = e[0]
@@ -620,9 +620,9 @@ class NaviBot:
 		"""Interpreta um comando, encontrando com base em seus args e flags o seu handler responsável por executá-lo.
 		
 		Args:
-		    message (Message): A mensagem de origem do discord.
-		    args (list(str)): A lista de argumentos.
-		    flags (dict): O dicionário de flags.
+			message (Message): A mensagem de origem do discord.
+			args (list(str)): A lista de argumentos.
+			flags (dict): O dicionário de flags.
 		"""
 
 		h = self.commands.get(args[0])
@@ -649,8 +649,8 @@ class NaviBot:
 		"""Interpreta um comando CLI, encontrando com base em seus args e flags o seu handler responsável por executá-lo.
 		
 		Args:
-		    cliargs (list(str)): A lista de argumentos.
-		    cliflags (dict): O dicionário de flags.
+			cliargs (list(str)): A lista de argumentos.
+			cliflags (dict): O dicionário de flags.
 		"""
 
 		h = self.clicommands.get(cliargs[0])
@@ -664,10 +664,10 @@ class NaviBot:
 		"""Retorna se determinado usuário é um dono específicado no arquivo de configurações.
 		
 		Args:
-		    author (User): O usuário autor da mensagem.
+			author (User): O usuário autor da mensagem.
 		
 		Returns:
-		    bool: Retorna se é um autor definido.
+			bool: Retorna se é um autor definido.
 		"""
 
 		return author.id in self.config.get(f"global.bot_owners")
@@ -691,8 +691,6 @@ class NaviBot:
 			termios.tcsetattr(sys.stdin, termios.TCSANOW, cli_stdin_current_attr)
 
 		try:
-			#uvloop.install()
-
 			self.client.navi_start(self.config.get(f"global.bot_token"))
 		except Exception as e:
 			self.handle_exception(e)
@@ -718,13 +716,13 @@ class NaviBot:
 		"""Devolve uma resposta padrão para uma ação do bot.
 		
 		Args:
-		    message (Message): A mensagem do discord que originou as ações.
-		    feedback (int, optional): O tipo de feedback para devolver.
-		    title (str, optional): O título do embed.
-		    text (str, optional): O texto a ser escrito no embed.
-		    code (bool, str, optional): Define se será utilizado um bloco de código para escrever o texto definido em text.
-		    exception (Exception, optional): Devolve uma resposta padrão para o usuário caso ocorra uma exception, imprimindo na CLI também.
-		    usage (NaviCommand, optional): O handler contendo a informação de uso.
+			message (Message): A mensagem do discord que originou as ações.
+			feedback (int, optional): O tipo de feedback para devolver.
+			title (str, optional): O título do embed.
+			text (str, optional): O texto a ser escrito no embed.
+			code (bool, str, optional): Define se será utilizado um bloco de código para escrever o texto definido em text.
+			exception (Exception, optional): Devolve uma resposta padrão para o usuário caso ocorra uma exception, imprimindo na CLI também.
+			usage (NaviCommand, optional): O handler contendo a informação de uso.
 			embeditem (EmbedItem, optional): O EmbedItem a ser gerado e enviado como resposta.
 		"""
 
@@ -735,10 +733,11 @@ class NaviBot:
 			await message.channel.send(embed=embeditem.generate())
 		else:
 			if usage != None:
+				text = "Uso:\n\n"
 				if isinstance(usage.usage, list):
-					text = "\n".join([f"`{usage.name} {i}`" for i in usage.usage])
+					text += "\n".join([f"`{usage.name} {i}`" for i in usage.usage])
 				else:
-					text = f"`{usage.name} {usage.usage}`"
+					text += f"`{usage.name} {usage.usage}`"
 
 			if text != None:
 				embed = None

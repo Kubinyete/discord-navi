@@ -37,10 +37,10 @@ def get_args(string):
 	"""Devolve dois objetos de argumentos e flags baseado na string passada por parâmetro.
 	
 	Args:
-	    string (str): Cadeia de caracteres a ser processada.
+		string (str): Cadeia de caracteres a ser processada.
 	
 	Returns:
-	    tuple(list(str), dict): Retorna uma tuple com dois valores, sendo eles uma list de argumentos e um dict de flags.
+		tuple(list(str), dict): Retorna uma tuple com dois valores, sendo eles uma list de argumentos e um dict de flags.
 	"""
 
 	# @NOTE
@@ -168,10 +168,10 @@ def translate_sequences(str):
 	"""Traduz todas as ocorrências de sequências de formatação no estilo {atributo1.atributo2} na cadeia de caracteres passada. 
 	
 	Args:
-	    str (str): A cadeia de caracteres a ser processada.
+		str (str): A cadeia de caracteres a ser processada.
 	
 	Returns:
-	    str: A cadeia de caracteres após a inserção das sequências ANSI.
+		str: A cadeia de caracteres após a inserção das sequências ANSI.
 	"""
 
 	fstr = ""
@@ -211,10 +211,10 @@ def bytes_string(bytes):
 	"""Devolve uma string de representação de acordo com a quantidade em bytes passada.
 	
 	Args:
-	    bytes (int): Número de bytes.
+		bytes (int): Número de bytes.
 	
 	Returns:
-	    str: A string de representação.
+		str: A string de representação.
 	"""
 	sizes = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 
@@ -229,10 +229,10 @@ def seconds_string(seconds):
 	"""Devolve uma string de representação de acordo com a quantidade em segundos passado.
 	
 	Args:
-	    seconds (int): Segundos.
+		seconds (int): Segundos.
 	
 	Returns:
-	    str: A string de representação.
+		str: A string de representação.
 	"""
 
 	d = math.floor(seconds / 86400)

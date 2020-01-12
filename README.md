@@ -18,7 +18,7 @@ A configuração do bot pode ser encontrada no arquivo de exemplo `config.json` 
 
 ```json
 {
-    "global": {
+	"global": {
 		"bot_token": "DISCORD_BOT_TOKEN",
 		"bot_prefix": ";;",
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
@@ -38,11 +38,11 @@ A maioria dos campos são auto-explicativos, com excessão do `bot_playing_delay
 Por razões de organização, é recomendado construir um conjunto de comandos sobre uma espécie de modulo, todos os modulos são preferêncialmente guardados em `modules/` como um modulo nativo do python. Segue abaixo um modulo de exemplo contendo o comando `helloworld`:
 
 ```py
-# modules/elloworld.py
+# modules/helloworld.py
 import navibot
 
 async def command_helloworld(bot, message, args, flags, handler):
-    await bot.feedback(message, navibot.SUCCESS, text=f"Olá mundo {message.author.name}!")
+	await bot.feedback(message, navibot.SUCCESS, text=f"Olá mundo {message.author.name}!")
 
 ```
 
@@ -50,7 +50,7 @@ Ao término do modulo, será necessário atualizar a lista de modulos a serem ca
 
 ```json
 {
-    "global": {
+	"global": {
 		"bot_token": "DISCORD_BOT_TOKEN",
 		"bot_prefix": ";;",
 		"bot_playing": ["testing!", "with fire!", "eating donuts!", "typing ;;"],
@@ -70,10 +70,10 @@ Ao término do modulo, será necessário atualizar a lista de modulos a serem ca
 - [x] Preferências e variáveis definidas em um contexto diferente para cada Guild, integrado à um banco de dados local.
 - [x] Verificar como implementar a verificação de permissão de execução dos comandos, quais usuários tem permissão.
 - [x] Modulo de gerênciamento de progressão dos usuários, EXP/PONTOS/PERFIL.
-- [ ] Escrever a função NaviBot.feedback() novamente, possibilitando formas mais cosistentes de passar informações.
 - [ ] ? Implementar uma espécie de loja de recompensas para poder gastar os créditos recebidos, achar uma forma justa de dar créditos.
 - [ ] ? Mostrar mais informações no perfil do membro, como recompensas obtidas, etc...
 - [ ] Modulo de integração com a API Danbooru/Safebooru.
+- [ ] Escrever a função NaviBot.feedback() novamente, possibilitando formas mais consistentes de passar informações.
 - [ ] Integração com a API AniList (possibilidade de integrar várias ideias; buscar personagens ou animes; perfil com top animes/personagens do usuário através do bot).
 - [ ] Criação de um script launcher (capaz de atualizar o bot, alterar configurações, gerênciar o banco de dados relacionado e inclusive adicionar novos modulos de um repositório github).
 - [ ] Desacoplar a CLI do núcleo do bot presente em navibot.NaviBot, tornar algo totalmente separado que não necessite de uma modificação na classe principal, pode ser necessário uma total reescrita do navilog.LogManager.
