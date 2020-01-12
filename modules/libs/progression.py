@@ -15,7 +15,7 @@ class MemberInfo:
 
 	@staticmethod
 	def get_exp_for_level(level):
-		return 50 * math.pow(level, 2)
+		return int(50 * math.pow(level, 2))
 
 class ProgressionManager:
 	unique_instance = None

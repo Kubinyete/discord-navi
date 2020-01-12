@@ -43,7 +43,7 @@ async def callbackError(bot, excInfo):
 	bot.handle_exception(excInfo)
 
 async def callbackCommandHandler(bot, message):
-	if message.author == bot.client.user or message.author.bot:
+	if message.guild is None or message.author == bot.client.user or message.author.bot:
 		return
 
 	if message.content.startswith(bot.prefix):

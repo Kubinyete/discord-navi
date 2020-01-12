@@ -242,7 +242,7 @@ class EmbedItem:
 		return embed
 
 class EmbedSlide:
-	def __init__(self, items, request_message, start=0, timeout=60, right_reaction=r"▶️", left_reaction=r"◀️"):
+	def __init__(self, items, request_message, start=0, timeout=60, right_reaction=r"▶️", left_reaction=r"◀️", restricted=False):
 		"""Define um Embed navegável através de reações do usuário.
 		
 		Args:
@@ -252,6 +252,7 @@ class EmbedSlide:
 		    timeout (int, optional): Define em segundos quanto tempo esperar por atividade de uso.
 		    right_reaction (str, optional): O emoji que deverá ser utilizado para detectar o movimento para frente.
 		    left_reaction (str, optional): O emoji que deverá ser utilizado para detectar o movimento para trás.
+			restricted (bool, optional): Caso ativado, o slide será restrito à ser utilizado somente pelo solicitante da mensagem.
 		"""
 
 		self._items = items
@@ -261,6 +262,7 @@ class EmbedSlide:
 		self._callback_name = None
 		self._displaying_message = None
 		self._in_use = True
+		self._restricted = restricted
 
 		self.right_reaction = right_reaction
 		self.left_reaction = left_reaction
@@ -270,7 +272,9 @@ class EmbedSlide:
 		# reaction.me apenas retorna verdadeiro com base no primeiro usuário que deu a reação (que no caso é sempre o próprio bot)
 		# Para evitar isso, é utilizado a função get_last_user_from(reaction) para obter a lista completa de pessoas que reagiram e retornando
 		# o ultimo usuário que consequentemente será o gerador do evento
-		if reaction.message.id != self._displaying_message.id or await get_last_user_from(reaction) == bot.client.user:
+		last_react_user = await get_last_user_from(reaction)
+
+		if reaction.message.id != self._displaying_message.id or last_react_user == bot.client.user or self._restricted and last_react_user != self._request_message.author:
 			return
 
 		if reaction.emoji == self.right_reaction:

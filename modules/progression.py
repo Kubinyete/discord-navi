@@ -51,9 +51,9 @@ async def command_profile(bot, message, args, flags, handler):
             footer=(memberinfo.member.name, memberinfo.member.avatar_url_as(size=32)),
             thumbnail=memberinfo.member.avatar_url_as(size=256),
             fields=[
-                ("Nivel", f"{memberinfo.get_current_level()} ({memberinfo.exp} EXP)"),
-                ("Créditos", memberinfo.credits),
-                ("Progresso", f"+{memberinfo.get_exp_required()} EXP para alcançar o próximo nível")
+                ("Nivel", f"**{memberinfo.get_current_level()}**", True),
+                ("Créditos", f"**{memberinfo.credits}**", True),
+                ("Progresso", f"*+{memberinfo.get_exp_required()} EXP para alcançar o próximo nível*", False)
             ]
         )
     ]

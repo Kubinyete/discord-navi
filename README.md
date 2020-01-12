@@ -69,7 +69,10 @@ Ao término do modulo, será necessário atualizar a lista de modulos a serem ca
 - [x] Verificar BUGs com o comando reload (recarregamento de modulos no Python é algo extremamente complexo e difícil de fazer, pode ser que nunca será arrumado ou será retirado por completo)
 - [x] Preferências e variáveis definidas em um contexto diferente para cada Guild, integrado à um banco de dados local.
 - [x] Verificar como implementar a verificação de permissão de execução dos comandos, quais usuários tem permissão.
-- [ ] Modulo de gerênciamento de progressão dos usuários, EXP/PONTOS/PERFIL.
+- [x] Modulo de gerênciamento de progressão dos usuários, EXP/PONTOS/PERFIL.
+- [ ] Escrever a função NaviBot.feedback() novamente, possibilitando formas mais cosistentes de passar informações.
+- [ ] ? Implementar uma espécie de loja de recompensas para poder gastar os créditos recebidos, achar uma forma justa de dar créditos.
+- [ ] ? Mostrar mais informações no perfil do membro, como recompensas obtidas, etc...
 - [ ] Modulo de integração com a API Danbooru/Safebooru.
 - [ ] Integração com a API AniList (possibilidade de integrar várias ideias; buscar personagens ou animes; perfil com top animes/personagens do usuário através do bot).
 - [ ] Criação de um script launcher (capaz de atualizar o bot, alterar configurações, gerênciar o banco de dados relacionado e inclusive adicionar novos modulos de um repositório github).
