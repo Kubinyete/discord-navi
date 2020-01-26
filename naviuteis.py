@@ -260,10 +260,10 @@ def seconds_string(seconds):
 def convert_string_any_type(seq):
 	seqlow = seq.lower()
 
-	if seqlow in ("true", "yes", "1"):
+	if seqlow in ("true", "yes"):
 		return True
 	
-	if seqlow in ("false", "no", "0"):
+	if seqlow in ("false", "no"):
 		return False
 	
 	try:

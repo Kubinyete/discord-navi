@@ -107,7 +107,7 @@ class Poll:
 
 		if total > 0:
 			description = "\n".join(
-				[f"**{chr(65 + i)}** - {self._answers[i]}\n{results[i]} voto(s)" for i in range(len(results))]
+				[f"**{chr(65 + i)}** - {self._answers[i]}\n{results[i]} voto(s)" if results[i] > 0 else "" for i in range(len(results))]
 			)
 		else:
 			description = f"A votação foi finalizada sem nenhum voto."
@@ -341,18 +341,20 @@ class EmbedSlide:
 		embed = self.generate_current_embed()
 
 		self._displaying_message = await self._request_message.channel.send(embed=embed)
-		self._callback_name = f"callbackEmbedSlideFor{self._displaying_message.id}"
+		
+		if len(self._items) > 1:
+			self._callback_name = f"callbackEmbedSlideFor{self._displaying_message.id}"
 
-		asyncio.get_running_loop().create_task(self._displaying_message.add_reaction(self.left_reaction))
-		asyncio.get_running_loop().create_task(self._displaying_message.add_reaction(self.right_reaction))
+			asyncio.get_running_loop().create_task(self._displaying_message.add_reaction(self.left_reaction))
+			asyncio.get_running_loop().create_task(self._displaying_message.add_reaction(self.right_reaction))
 
-		bot.client.listen("on_reaction_add", self.callbackEmbedSlideReact, self._callback_name)
+			bot.client.listen("on_reaction_add", self.callbackEmbedSlideReact, self._callback_name)
 
-		while self._in_use:
-			self._in_use = False
-			await asyncio.sleep(self._timeout)
+			while self._in_use:
+				self._in_use = False
+				await asyncio.sleep(self._timeout)
 
-		bot.client.remove("on_reaction_add", self.callbackEmbedSlideReact, self._callback_name)
+			bot.client.remove("on_reaction_add", self.callbackEmbedSlideReact, self._callback_name)
 
 class GuildSettingsManager:
 	def __init__(self, bot):
@@ -431,7 +433,7 @@ class GuildSettingsManager:
 	@staticmethod
 	def translate_key_value(value, value_type):
 		if value_type == 1:
-			return value.lower() in ("yes", "true", "1")
+			return value.lower() in ("yes", "true")
 		elif value_type == 2:
 			return int(value)
 		elif value_type == 3:

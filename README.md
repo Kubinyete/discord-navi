@@ -70,8 +70,9 @@ Ao término do modulo, será necessário atualizar a lista de modulos a serem ca
 - [x] Preferências e variáveis definidas em um contexto diferente para cada Guild, integrado à um banco de dados local.
 - [x] Verificar como implementar a verificação de permissão de execução dos comandos, quais usuários tem permissão.
 - [x] Modulo de gerênciamento de progressão dos usuários, EXP/PONTOS/PERFIL.
-- [ ] ? Implementar uma espécie de loja de recompensas para poder gastar os créditos recebidos, achar uma forma justa de dar créditos.
-- [ ] ? Mostrar mais informações no perfil do membro, como recompensas obtidas, etc...
+- [ ] Verificar implementação de permissões, pode estar falhando!
+- [ ] ? (Não sei exatamente como fazer isso de uma forma legal...) Implementar uma espécie de loja de recompensas para poder gastar os créditos recebidos, achar uma forma justa de dar créditos.
+- [ ] ? (Depende da tarefa acima) Mostrar mais informações no perfil do membro, como recompensas obtidas, etc...
 - [ ] Modulo de integração com a API Danbooru/Safebooru.
 - [ ] Escrever a função NaviBot.feedback() novamente, possibilitando formas mais consistentes de passar informações.
 - [ ] Integração com a API AniList (possibilidade de integrar várias ideias; buscar personagens ou animes; perfil com top animes/personagens do usuário através do bot).

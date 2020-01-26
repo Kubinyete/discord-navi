@@ -220,12 +220,18 @@ async def command_config(bot, message, args, flags, handler):
 			if not args[2] in currsettings:
 				await bot.feedback(message, feedback=navibot.WARNING, text=f"A chave `{args[2]}` não foi encontrada")
 			else:
-				currsettings[args[2]] = naviuteis.convert_string_any_type(" ".join(args[3:]))
+				oldvalue = currsettings[args[2]]
+				newvalue = naviuteis.convert_string_any_type(" ".join(args[3:]))
 
-				try:
-					await bot.guildsettings.update_settings(message.guild, currsettings)
-					await bot.feedback(message, feedback=navibot.SUCCESS)
-				except Exception as e:
-					await bot.feedback(message, feedback=navibot.ERROR, exception=e)
+				if type(oldvalue) != type(newvalue):
+					await bot.feedback(message, feedback=navibot.WARNING, text=f"A chave `{args[2]}` precisa ser do tipo `{type(oldvalue).__name__}`")
+				else:
+					currsettings[args[2]] = newvalue
+
+					try:
+						await bot.guildsettings.update_settings(message.guild, currsettings)
+						await bot.feedback(message, feedback=navibot.SUCCESS)
+					except Exception as e:
+						await bot.feedback(message, feedback=navibot.ERROR, exception=e)
 		else:
 			await bot.feedback(message, feedback=navibot.COMMAND_INFO, usage=handler)

@@ -30,3 +30,7 @@ class HttpWorker:
 
 		async with self._session.get(url, params=params) as resp:
 			return await resp.json()
+
+	async def post_json(self, url, params={}, json={}):
+		async with self._session.post(url, params=params, json=json) as resp:
+			return await resp.json()
